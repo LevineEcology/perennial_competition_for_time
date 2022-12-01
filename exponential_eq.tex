@@ -1,0 +1,178 @@
+% Created 2022-04-05 Tue 15:27
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\author{Jacob Levine}
+\date{\today}
+\title{Water competition among perennial plants}
+\hypersetup{
+ pdfauthor={Jacob Levine},
+ pdftitle={Water competition among perennial plants},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 27.2 (Org mode 9.6)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+
+
+
+\section{System with exponential growth and decay at packed equilibrium}
+\label{sec:orgf24b87e}
+
+
+\begin{equation}
+ \lambda(t) =  \lambda_{0}e^{\alpha t}
+\end{equation}
+
+where \(\alpha = f(a)\) and \(a\) is a plant's carbon accumulation rate. When \(0 < t < t_{i}^{*}\):
+
+\begin{equation*}
+  \lambda(t) = \lambda_{0}e^{f(g_{i}(W(t))) t}
+\end{equation*}
+
+when \(t_{i}^{*} < t < t_{e}\)
+
+\begin{equation*}
+  \lambda(t) = \lambda_{m}e^{f(r_{i}(t)) t}
+\end{equation*},
+
+or equivalently:
+
+\begin{equation*}
+  \lambda_{e}e^{-f(r_{i}(t)) (t_e - t_{i}^{*})}
+\end{equation*}
+
+at equilibrium:
+
+\begin{equation*}
+  \lambda_{e} = \lambda_{0} = \lambda^{*}
+\end{equation*}
+
+which implies:
+
+\begin{equation*}
+  \lambda_{i}(t) = \lambda_{i}^{*}e^{-f(r_{i}(t))(t_{e} - t_{i}^{*})}
+\end{equation*}
+
+When species are packed and at equilibrium:
+
+\begin{equation*}
+  W_{i}^{*}-W_{i-1}^{*} = E \int_{t_{j-1}^{*}}^{t_{j}^{*}} \sum_{j=i}^{Q} \lambda_{i}^{*}e^{f(g_{j}(W(t))) t}dt
+\end{equation*}
+
+as the limit of \(t_{i}^{*} - t_{i-1}^{*}\) goes to zero, we can approximate the integral as:
+
+\begin{equation*}
+  \frac{W_{i}^{*} - W_{i-1}^{*}}{t_{i}^{*}-t_{i-1}^{*}} = E \sum_{j=i}^{Q} \lambda_{i}^{*}e^{f(g_{j}(W(t_{i}^{*}))) t_{i}^{*}}
+\end{equation*}
+
+for species \(Q\), this expression becomes:
+
+\begin{equation*}
+  \frac{W_{Q}^{*} - W_{Q-1}^{*}}{t_{Q}^{*}-t_{Q-1}^{*}} = E \lambda_{Q}^{*}e^{f(g_{Q}(W_{Q}^{*})) t_{Q}^{*}}
+\end{equation*}
+
+solving for \(\lambda^{*}\) we find:
+
+\begin{equation*}
+  \lambda_{Q}^{*} = \left(\frac{W_{Q}^{*} - W_{Q-1}^{*}}{t_{Q}^{*}-t_{Q-1}^{*}}\right) \frac{1}{E e^{f(g_{Q}(W_{Q}^{*})) t_{Q}^{*}}}
+\end{equation*}
+
+which implies that species \(Q\) has positive leaf area at equilibrium when:
+
+\begin{equation*}
+  \left(\frac{W_{Q}^{*} - W_{Q-1}^{*}}{t_{Q}^{*}-t_{Q-1}^{*}}\right) \frac{1}{E e^{f(g_{Q}(W_{Q}^{*})) t_{Q}^{*}}} > 0
+\end{equation*}
+
+which at the where species are infinitely packed becomes:
+
+\begin{equation*}
+  \left(\frac{dW^{*}(t)}{dt^{*}}|_{t^{*} = t_{Q}^{*}}\right) \frac{1}{E e^{f(g_{Q}(W_{Q}^{*})) t_{Q}^{*}}} > 0
+\end{equation*}
+
+which is always true.
+
+Plugging this expression into the expression for species \(Q-1\) we find:
+
+\begin{equation*}
+  \frac{W_{Q-1}^{*} - W_{Q-2}^{*}}{t_{Q-1}^{*}-t_{Q-2}^{*}} = \left(\frac{W_{Q}^{*} - W_{Q-1}^{*}}{t_{Q}^{*}-t_{Q-1}^{*}}\right) \frac{e^{f(g_{Q}(W_{Q-1}^{*})) t_{Q-1}^{*}}}{e^{f(g_{Q}(W_{Q}^{*})) t_{Q}^{*}}} + E \lambda_{Q-1}^{*}e^{f(g_{Q-1}(W_{Q-1}^{*})) t_{Q-1}^{*}}
+\end{equation*}
+
+which is equivalent to:
+
+\begin{equation*}
+  \frac{\Delta W_{Q-1}^{*}}{\Delta t_{Q-1}^{*}} = \left(\frac{\Delta W_{Q-1}^{*}}{\Delta t_{Q-1}^{*}}\right) e^{f(g_{Q}(W_{Q-1}^{*})) t_{Q-1}^{*} - f(g_{Q}(W_{Q}^{*})) (t_{Q}^{*} - \Delta t_{Q}^{*})} + E \lambda_{Q-1}^{*}e^{f(g_{Q-1}(W_{Q-1}^{*})) t_{Q-1}^{*}}
+\end{equation*}
+
+Taking the limit as the \(\Delta\)'s go to zero:
+
+\begin{equation*}
+  \frac{dW^{*}(t)}{dt^{*}}|_{t^{*} = t_{Q-1}^{*}} = \left(\frac{dW^{*}(t)}{dt^{*}}|_{t^{*} = t_{Q}^{*}}\right) e^{t_{Q-1}^{*} \frac{d}{dt^{*}} f(g_{Q}(W(t_{Q-1}^{*})))} + E \lambda_{Q-1}^{*}e^{f(g_{Q-1}(W(t_{Q-1}^{*})))}
+\end{equation*}
+
+and solving for \(\lambda_{Q-1}^{*}\):
+
+\begin{equation*}
+ \lambda_{Q-1}^{*} = \left( \frac{dW^{*}(t)}{dt^{*}}|_{t^{*} = t_{Q-1}^{*}} - \left(\frac{dW^{*}(t)}{dt^{*}}|_{t^{*} = t_{Q}^{*}}\right) e^{t_{Q-1}^{*} \frac{d}{dt^{*}} f(g_{Q}(W(t_{Q-1}^{*})))} \right) \frac{1}{E e^{f(g_{Q-1}(W(t_{Q-1}^{*})))}}
+\end{equation*}
+
+which implies that species \(Q-1\) has positive leaf area at equilibrium when:
+
+\begin{equation*}
+  \frac{dW^{*}(t)}{dt^{*}}|_{t^{*} = t_{Q-1}^{*}} - \left(\frac{dW^{*}(t)}{dt^{*}}|_{t^{*} = t_{Q}^{*}}\right) e^{t_{Q-1}^{*} \frac{d}{dt^{*}} f(g_{Q}(W(t_{Q-1}^{*})))} > 0
+\end{equation*}
+
+which is true provided
+
+\begin{equation*}
+  \frac{d^{2}W^{*}(t)}{dt^{*}^{2}}|_{t^{*} = t_{Q-1}^{*}} > 0
+\end{equation*}
+
+because \(\frac{d}{dt^{*}} f(g_{Q}(W(t_{Q-1}^{*}))) < 0\)
+
+This holds for all species \(i\) when ordered by \(W_{i}^{*}\), i.e. for species \(i\) to have a positive equilibrium density, the following expression must be satisfied
+
+\begin{equation*}
+  \frac{d^{2}W^{*}(t)}{dt^{*}^{2}}|_{t^{*} = t_{i}^{*}} > 0
+\end{equation*}
+
+implying that if all species adhere to a tradeoff where \(\frac{d^{2}W^{*}(t)}{dt^{*}^{2}} > 0\) and \(\frac{dW^{*}(t)}{dt^{*}} < 0\) they will all have feasible equilibria.
+
+
+\subsection{What is \(t^*\) in this context?}
+\label{sec:org1a0a6fc}
+
+At equilibrium, the following expression must hold:
+
+\begin{equation*}
+e^{f(g(W(t))) t^{*}} = e^{-f(r(t))(t_{e} - t_{Q}^{*})}
+\end{equation*}
+
+which simplifying is equivalent to:
+
+\begin{equation*}
+t^{*} = t_{e}\left( \frac{-f(r(t))}{f(g(W(t)))} + 1 \right)
+\end{equation*}
+
+if \(r(t)\) is constant then:
+
+\begin{equation*}
+t^{*} = t_{e}\left( \frac{-f(r)}{f(g(W^{*}))} + 1 \right)
+\end{equation*}
+
+if \(r(t)\) is not constant, the solution for \(t^{*}\) can still be found provided \(t^{*}\) can be pulled out of \(f(r(t))\).
+\end{document}
