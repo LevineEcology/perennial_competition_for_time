@@ -60,7 +60,7 @@ function calc_eqN(sd::DataFrame, F::Float64 = F, E::Float64 = E, W₀::Float64 =
     else
         for s in [1:1:length(fs);]
             if s == 1
-                eqN[fs[s]] = (sg*(F^((b-1)/b) / E)) * ((W0 - sd[fs[s],:Wᵢ])/(sd[fs[s],:τ]) - ((sd[fs[s],:Wᵢ] - sd[fs[s+1],:Wᵢ]) / (sd[fs[s+1],:τ] - sd[fs[s],:τ])))
+                eqN[fs[s]] = (sg*(F^((b-1)/b) / E)) * ((W₀ - sd[fs[s],:Wᵢ])/(sd[fs[s],:τ]) - ((sd[fs[s],:Wᵢ] - sd[fs[s+1],:Wᵢ]) / (sd[fs[s+1],:τ] - sd[fs[s],:τ])))
             elseif s == length(fs)
                 eqN[fs[s]] = sg*(F^((b-1)/b) / (E)) * ((sd[fs[s-1],:Wᵢ] - sd[fs[s],:Wᵢ])/(sd[fs[s],:τ] - sd[fs[s-1], :τ]))
             else

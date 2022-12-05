@@ -1,4 +1,3 @@
-using Base: NonReshapedReinterpretArray
 ##---------------------------------------------------------------
 ## WATER_ONLY_SIMULATOR -- main.jl
 ##
@@ -12,7 +11,7 @@ using Base: NonReshapedReinterpretArray
 
 using Plots, QuadGK, DataFrames, Distributions,
     SpecialFunctions, LazySets, NLsolve, AutoPreallocation,
-    Profile, PProf, PlotThemes
+    Profile, PProf, PlotThemes, CSV
 
 ## simulation parameters
 Nspp::Int64 = 10; Nyr::Int64 = 1000; Ninit::Float64 = 1.0;
@@ -46,61 +45,49 @@ plot_eq_agreement(out, true, "figures/sim_vs_an.pdf")
 ##    water contents and interrain interval lengths
 ##---------------------------------------------------------------
 @time results = multi_eq_constant_water(30,8, 0.1, 0.6, 6, 1.0, 100.0, 6);
-
+summary = summarize_multi_eq(results)
 
 theme(:dark)
 my_cgrad = cgrad(:acton)
 
+plot_multi_eq(summary, "n", :W₀, results[4], true, "figures/eq_nfeas_W0.pdf")
+plot_multi_eq(summary, "n", :T, results[4], true, "figures/eq_nfeas_T.pdf")
 
-x = :W₀
-typeof(x)
+plot_multi_eq(summary, "min", :W₀, results[4], true, "figures/eq_minfeas_W0.pdf")
+plot_multi_eq(summary, "min", :T, results[4],true, "figures/eq_minfeas_T.pdf")
 
-typeof("x")
+plot_multi_eq(summary, "avg", :W₀, results[4], true, "figures/eq_avgfeas_W0.pdf")
+plot_multi_eq(summary, "avg", :T, results[4], true, "figures/eq_avgfeas_T.pdf")
 
-function plot_multi_eq(data::DataFrame, yvar::String = "n", xvar::Symbol = :W₀)
+##---------------------------------------------------------------
+## 3. simulate population dynamics under variable W₀ and T
+##---------------------------------------------------------------
+spp_data = generate_spp_data(10, 0.8, 40.0, 100.0, 0.1, 2.5, 0.4,
+                             0.0)
 
-    if xvar == :W₀
-        groupvar = :T
-    else
-        groupvar = :W₀
-    end
+out = sim_water_only(spp_data, 3000, nrow(spp_data), 1.0)
+out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, true, false,
+                                0.6, 0.1)
 
-    subdata = data[data.var .== yvar, :]
-    p = plot(subdata[:,xvar], subdata.mean, group = subdata[:,groupvar], line_z = subdata[:,groupvar],
-             fill_z = subdata[:,groupvar], ribbon = subdata.sd, seriescolor = my_cgrad,
-             seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata[:,xvar]), maximum(subdata[:,xvar])],
-             legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3)
-    return p
+plot_simulation_dynamics(out)
 
-end;
+out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true,
+                                0.6, 0.1)
 
-plot_multi_eq(summary)
+plot_simulation_dynamics(out)
 
-plot(subdata.T, subdata.mean, group = subdata.W₀, line_z = subdata.W₀, fill_z = subdata.W₀,
-     ribbon = subdata.sd, seriescolor = my_cgrad,
-     seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata.T), maximum(subdata.T)],
-     legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3)
+out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true,
+                                0.6, 0.1, 40.0, 20.0)
 
+plot_simulation_dynamics(out)
 
-subdata = summary[summary.var .== "avg", :]
-plot(subdata.W₀, subdata.mean, group = subdata.T, line_z = subdata.T, fill_z = subdata.T,
-     ribbon = subdata.sd, seriescolor = my_cgrad,
-     seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata.W₀), maximum(subdata.W₀)],
-     legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3)
-
-plot(subdata.T, subdata.mean, group = subdata.W₀, line_z = subdata.W₀, fill_z = subdata.W₀,
-     ribbon = subdata.sd, seriescolor = my_cgrad,
-     seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata.T), maximum(subdata.T)],
-     legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3)
+Vector(out[2][3000, 2:ncol(out[2])])
 
 
-subdata = summary[summary.var .== "min", :]
-plot(subdata.W₀, subdata.mean, group = subdata.T, line_z = subdata.T, fill_z = subdata.T,
-     ribbon = subdata.sd, seriescolor = my_cgrad,
-     seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata.W₀), maximum(subdata.W₀)],
-     legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3)
-
-plot(subdata.T, subdata.mean, group = subdata.W₀, line_z = subdata.W₀, fill_z = subdata.W₀,
-     ribbon = subdata.sd, seriescolor = my_cgrad,
-     seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata.T), maximum(subdata.T)],
-     legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3)
+out = multi_eq_variable_water(10, 10, 4000,
+                              0.1, 0.6, 4,
+                              0.0, 0.2, 4,
+                              1.0, 40.0, 4,
+                              0.0, 30.0, 4)
+CSV.write(out, "")
+summarize_multi_eq_variable(out)

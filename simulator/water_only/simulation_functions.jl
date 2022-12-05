@@ -1,19 +1,25 @@
 ## define parameters
 ##calculate growth time within season
 function calc_t!(t::Vector{Float64}, biomass_data::DataFrame,
-                 n_data::DataFrame, v::Vector{Float64}, ## total leaf area of each spp
+                 n_data::DataFrame, v::Vector{Float64},
                  Wᵢ::Vector{Float64}, W₀::Float64 = 0.6, T::Float64 = 40.0)
     v = ΣL(biomass_data, n_data, v)
-    t .= T
-    for s in 1:length(v)
-        if s == 1
-            t[s] = (W₀ - Wᵢ[s]) / (E * sum(v))
-        else
-            t[s] = ((Wᵢ[s-1] - Wᵢ[s]) / (E * sum(v[[s:1:length(v);]]))) + t[s-1]
-        end
-        if t[s] > T
-            t[s] = T
-            break
+
+    ## only perform calculations for spp with Wᵢ < W₀
+    g0 = findall(W₀ .> Wᵢ)
+    t[1:g0[1]-1] .= 0.0
+    t[g0] .= T
+    if length(g0) != 0
+        for s in g0[1]:length(v)
+            if s == 1
+                t[s] = (W₀ - Wᵢ[s]) / (E * sum(v))
+            else
+                t[s] = ((Wᵢ[s-1] - Wᵢ[s]) / (E * sum(v[[s:1:length(v);]]))) + t[s-1]
+            end
+            if t[s] > T
+                t[s] = T
+                break
+            end
         end
     end
     nothing
@@ -39,7 +45,7 @@ end;
 ## kill plants
 function die!(nd::DataFrame, μ::Float64, yr::Int64)
     for i in [2:1:ncol(nd);]
-        nd[[1:1:yr+1;],i] = nd[[1:1:yr+1;],i] .* (1.0-mu)
+        nd[[1:1:yr+1;],i] = nd[[1:1:yr+1;],i] .* (1.0-μ)
     end
     nothing
 end;
@@ -88,8 +94,8 @@ function generate_spp_data(Nspp::Int64, Wmax::Float64 = 0.8, T::Float64 = 40.0,
     spp_data.Wᵢ = Wmax .* exp.(-tradeoff_exp * spp_data.τ) .+
         rand(Normal(0, tradeoff_sd), Nspp)
     spp_data = sort(spp_data, :Wᵢ, rev = true)
-    replace(x -> isless(x, 0) ? 0 : x, spp_data.Wᵢ)
-    replace(x -> isless(Wmax, x) ? Wmax : x, spp_data.Wᵢ)
+    spp_data.Wᵢ = replace(x -> isless(x, 0) ? 0 : x, spp_data.Wᵢ)
+    spp_data.Wᵢ = replace(x -> isless(Wmax, x) ? Wmax : x, spp_data.Wᵢ)
     spp_data.spp = Int[1:1:Nspp;];
     return spp_data
 end;
@@ -108,7 +114,11 @@ function iterate_water_only_sim(Nyr::Int64, spp_data::DataFrame,
     ## begin iterating
     for yr in [1:1:Nyr;]
         ## calculate season length for each species
-        calc_t!(t, biomass_data, n_data, v, spp_data.Wᵢ, W₀vec[yr], Tvec[yr])
+        if any(spp_data.Wᵢ .< W₀vec[yr])
+            calc_t!(t, biomass_data, n_data, v, spp_data.Wᵢ, W₀vec[yr], Tvec[yr])
+        else
+            t = repeat([0.0], inner = Nspp)
+        end
 
         ## calculate average growth rate for each species
         g = calc_g.(t, spp_data[:, :C₁], spp_data[:, :C₂], Tvec[yr])
@@ -139,7 +149,9 @@ function iterate_water_only_sim(Nyr::Int64, spp_data::DataFrame,
 end;
 
 ## simulate water only
-function sim_water_only(spp_data::DataFrame, Nyr::Int64, Nspp::Int64, Ninit::Float64)
+function sim_water_only(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
+                        Ninit::Float64, μ::Float64 = 0.1, W₀::Float64 = 0.6,
+                        T::Float64 = 40.0)
 
     ## setup for simulations
     ## generate biomass and population data frames
@@ -169,7 +181,9 @@ function sim_water_only(spp_data::DataFrame, Nyr::Int64, Nspp::Int64, Ninit::Flo
     iterate_water_only_sim(Nyr, spp_data,
                            biomass_data, biomass_dynamics,
                            n_data, n_dynamics,
-                           g, t, v, Nspp, μ)
+                           g, t, v, Nspp, μ,
+                           repeat([W₀], inner = Nyr),
+                           repeat([T], inner = Nyr))
 
 end;
 
@@ -179,3 +193,79 @@ function sigma(μ, l, b)
     y2 = sum((1-μ).^x .* x.^b)
     y2^(l/b) / y1
 end;
+
+##---------------------------------------------------------------
+## STOCHASTIC SIMULATIONS
+##---------------------------------------------------------------
+
+
+
+## simulate water only
+function sim_water_only_stochastic(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
+                                   Ninit::Float64, rand_W₀::Bool = true,
+                                   rand_T::Bool = false,
+                                   W₀mean::Float64 = 0.6, W₀sd::Float64 = 0.05,
+                                   Tmean::Float64 = 40.0, Tsd::Float64 = 7.0)
+
+    ## setup for simulations
+    ## generate biomass and population data frames
+    biomass_data = DataFrame(rowkey = repeat([1:1:Nyr+1;], inner = Nspp),
+                             spp = repeat(string.(spp_data.spp), outer = Nyr+1),
+                             B = repeat(repeat(Float64[0], inner = Nspp), inner = Nyr+1));
+    n_data = DataFrame(rowkey = repeat([1:1:Nyr+1;], inner = Nspp),
+                       spp = repeat(string.(spp_data.spp), outer = Nyr+1),
+                       N = repeat(repeat(Float64[0], inner = Nspp), inner = Nyr+1));
+
+    biomass_data = unstack(biomass_data, :spp, :B);
+    biomass_data[!,[2:ncol(biomass_data);]] .= convert.(Float64,biomass_data[!,[2:ncol(biomass_data);]]);
+    n_data = unstack(n_data, :spp, :N);
+    n_data[!,[2:ncol(n_data);]] .= convert.(Float64,n_data[!,[2:ncol(n_data);]]);
+
+    ## dynamics data frames
+    biomass_dynamics = copy(biomass_data[[1:1:Nyr;],:]);
+    n_dynamics = copy(n_data[[1:1:Nyr;],:]);
+
+    ## inital population:
+    n_data[1,[2:1:Nspp+1;]] = repeat([Ninit], inner = Nspp);
+
+    g = Vector{Float64}(undef, Nspp);
+    t = Vector{Float64}(undef, Nspp);
+    v = Vector{Float64}(undef, Nspp);
+
+    if rand_W₀
+        W₀vec = rand(Normal(W₀mean, W₀sd), Nyr)
+        W₀vec = replace(x -> isless(x, 0) ? 1e-10 : x, W₀vec)
+    else
+        W₀vec = repeat([W₀mean], inner = Nyr)
+    end
+
+    if rand_T
+        Tvec = rand(Normal(Tmean, Tsd), Nyr)
+        Tvec = replace(x -> isless(x, 0) ? 1e-10 : x, Tvec)
+    else
+        Tvec = repeat([Tmean], inner = Nyr)
+    end
+
+    iterate_water_only_sim(Nyr, spp_data,
+                           biomass_data, biomass_dynamics,
+                           n_data, n_dynamics,
+                           g, t, v, Nspp, μ,
+                           W₀vec, Tvec)
+
+end;
+
+function plot_simulation_dynamics(results, save::Bool = false)
+    pdata = stack(results[2])
+    pdata.variable = parse.(Int64, pdata.variable)
+
+    p = plot(pdata.rowkey, pdata.value, group = pdata.variable,line_z = pdata.variable,
+             ylim = [0, round(maximum(pdata.value) + 100)], xlim = [0, maximum(pdata.rowkey)],
+             seriescolor = my_cgrad, seriestype = :line,
+             legend = :topleft, frame = :box, grid = false, linewidth = 1.5)
+
+    if save
+        savefig(p, filename)
+    end
+
+    return p
+end
