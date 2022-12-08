@@ -1,9 +1,9 @@
 using Pkg
-Pkg.activate("home/jl104/.julia/perennial_simulators")
+Pkg.activate("../../..//home/jl104/.julia/perennial_simulators")
 Pkg.instantiate()
 
 using Plots, DataFrames, Distributions,
-    SpecialFunctions, LazySets, NLsolve, PlotThemes, CSV
+    LazySets, NLsolve, PlotThemes, CSV
 
 ## simulation parameters
 Nspp::Int64 = 10; Nyr::Int64 = 1000; Ninit::Float64 = 1.0;
@@ -28,3 +28,4 @@ out = multi_eq_variable_water(30, 20, 4000,
                               1.0, 40.0, 5,
                               0.0, 30.0, 5)
 CSV.write("simulator_runs.csv", out)
+

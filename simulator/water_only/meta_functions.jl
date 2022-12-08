@@ -133,7 +133,7 @@ function multi_eq_variable_water(Nspp::Int64 = 10, Niter::Int64 = 10,
         full_results[:,i] = sub_results
     end
 
-    return [full_results, Niter, params, Nspp]
+    summarize_multi_eq_variable([full_results, Niter, params, Nspp])
 
 end
 
