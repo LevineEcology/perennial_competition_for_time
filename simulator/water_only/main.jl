@@ -1,3 +1,4 @@
+using Profile: profile_printing_listener
 ##---------------------------------------------------------------
 ## WATER_ONLY_SIMULATOR -- main.jl
 ##
@@ -81,13 +82,56 @@ out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true
 
 plot_simulation_dynamics(out)
 
-Vector(out[2][3000, 2:ncol(out[2])])
+CSV.read()
 
 
-out = multi_eq_variable_water(10, 10, 4000,
-                              0.1, 0.6, 4,
-                              0.0, 0.2, 4,
-                              1.0, 40.0, 4,
-                              0.0, 30.0, 4)
-CSV.write(out, "")
-summarize_multi_eq_variable(out)
+##---------------------------------------------------------------
+## 4. Spatial patterns
+##---------------------------------------------------------------
+
+function predict_soil_moisture(elevation)
+    0.9 ./ (exp.(0.0008 .* ((elevation .- minimum(elevation) ./ (maximum(elevation) - minimum(elevation))))))
+end
+
+function degrade_by_aspect(sm, aspect)
+    sm / (exp(0.8 * aspect / 180))
+end
+
+import GeoArrays
+elevation_grid = GeoArrays.read("elevation/dem.tif")
+aspect_grid = GeoArrays.read("elevation/aspect.tif")
+elevation_grid = elevation_grid[600:1800,2500:3100,:]
+aspect_grid = aspect_grid[600:1800,2500:3100,:]
+soil_moisture_grid = copy(elevation_grid)
+soil_moisture_grid[:,:,1] = predict_soil_moisture(soil_moisture_grid[:,:,1])
+soil_moisture_grid[:,:,1] = degrade_by_aspect.(soil_moisture_grid[:,:,1], aspect_grid[:,:,1])
+
+plot(elevation_grid, c = :thermal)
+plot(soil_moisture_grid)
+
+transect = elevation_grid[:, 1500, :]
+
+sm_sub = soil_moisture_grid[500:700,200:300,:]
+plot(sm_sub)
+
+diversity_grid = @time multi_eq_geography(soil_moisture_grid, 40)
+dv_grid = copy(soil_moisture_grid)
+dv_grid[:,:,1] = diversity_grid
+plot(dv_grid, c = :reds)
+
+GeoArrays.write("diversity_grid.tif", dv_grid)
+
+## takes forever
+@time diversity_grid2 = multi_eq_geography(sm_sub, 40)
+
+bm_grid = copy(sm_sub)
+bm_grid[:,:,1] = diversity_grid2[2]
+plot(bm_grid, c = :greens)
+
+bm_grid = copy(sm_sub)
+bm_grid[:,:,1] = diversity_grid2[2]
+plot(bm_grid, c = :greens)
+
+ph_grid = copy(sm_sub)
+ph_grid[:,:,1] = diversity_grid2[3]
+plot(ph_grid, c = :blues)
