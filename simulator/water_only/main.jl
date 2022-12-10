@@ -1,4 +1,3 @@
-using Profile: profile_printing_listener
 ##---------------------------------------------------------------
 ## WATER_ONLY_SIMULATOR -- main.jl
 ##
@@ -12,7 +11,7 @@ using Profile: profile_printing_listener
 
 using Plots, QuadGK, DataFrames, Distributions,
     SpecialFunctions, LazySets, NLsolve, AutoPreallocation,
-    Profile, PProf, PlotThemes, CSV
+    Profile, PProf, PlotThemes, CSV, GeoArrays
 
 ## simulation parameters
 Nspp::Int64 = 10; Nyr::Int64 = 1000; Ninit::Float64 = 1.0;
@@ -45,7 +44,7 @@ plot_eq_agreement(out, true, "figures/sim_vs_an.pdf")
 ## 2. calculate equilibrium densities under constant, initial
 ##    water contents and interrain interval lengths
 ##---------------------------------------------------------------
-@time results = multi_eq_constant_water(30,8, 0.1, 0.6, 6, 1.0, 100.0, 6);
+@time results = multi_eq_constant_water(30, 8, 0.1, 0.6, 6, 1.0, 100.0, 6);
 summary = summarize_multi_eq(results)
 
 theme(:dark)
@@ -63,14 +62,15 @@ plot_multi_eq(summary, "avg", :T, results[4], true, "figures/eq_avgfeas_T.pdf")
 ##---------------------------------------------------------------
 ## 3. simulate population dynamics under variable W₀ and T
 ##---------------------------------------------------------------
-spp_data = generate_spp_data(10, 0.8, 40.0, 100.0, 0.1, 2.5, 0.4,
+spp_data = generate_spp_data(10, 0.7, 40.0, 100.0, 0.1, 2.5, 0.4,
                              0.0)
 
-out = sim_water_only(spp_data, 3000, nrow(spp_data), 1.0)
-out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, true, false,
+out1 = sim_water_only(spp_data, 3000, nrow(spp_data), 1.0)
+out2 = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, true, false,
                                 0.6, 0.1)
 
-plot_simulation_dynamics(out)
+plot_simulation_dynamics(out1)
+plot_simulation_dynamics(out2)
 
 out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true,
                                 0.6, 0.1)
@@ -82,7 +82,18 @@ out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true
 
 plot_simulation_dynamics(out)
 
-CSV.read()
+variable_results = CSV.read("simulator_runs.csv", DataFrame)
+
+plot_multi_eq_variable(variable_results, "n", :W₀, 30, true, "figures/eq_nfeas_W0_var.pdf")
+plot_multi_eq_variable(variable_results, "n", :T, 30, true, "figures/eq_nfeas_T_var.pdf")
+
+plot_multi_eq_variable(variable_results, "min", :W₀, 30, true, "figures/eq_minfeas_W0_var.pdf")
+plot_multi_eq_variable(variable_results, "min", :T, 30, true, "figures/eq_minfeas_T_var.pdf")
+
+plot_multi_eq_variable(variable_results, "avg", :W₀, 30, true, "figures/eq_avgfeas_W0_var.pdf")
+plot_multi_eq_variable(variable_results, "avg", :T, 30, true, "figures/eq_avgfeas_T_var.pdf")
+
+data = variable_results; yvar = "avg"; xvar = "T"
 
 
 ##---------------------------------------------------------------
@@ -106,7 +117,10 @@ soil_moisture_grid = copy(elevation_grid)
 soil_moisture_grid[:,:,1] = predict_soil_moisture(soil_moisture_grid[:,:,1])
 soil_moisture_grid[:,:,1] = degrade_by_aspect.(soil_moisture_grid[:,:,1], aspect_grid[:,:,1])
 
-plot(elevation_grid, c = :thermal)
+elp = plot(elevation_grid, c = :thermal)
+savefig(elp, "figures/elevation_grid.pdf")
+plot(aspect_grid, c = :thermal)
+
 plot(soil_moisture_grid)
 
 transect = elevation_grid[:, 1500, :]
@@ -117,10 +131,12 @@ plot(sm_sub)
 diversity_grid = @time multi_eq_geography(soil_moisture_grid, 40)
 dv_grid = copy(soil_moisture_grid)
 dv_grid[:,:,1] = diversity_grid
-plot(dv_grid, c = :reds)
+plot(dv_grid, c = :greens)
 
 GeoArrays.write("diversity_grid.tif", dv_grid)
-
+dv_grid = GeoArrays.read("diversity_grid.tif")
+dvp = plot(dv_grid, c = :greens)
+savefig(dvp, "figures/diversity_grid.pdf")
 ## takes forever
 @time diversity_grid2 = multi_eq_geography(sm_sub, 40)
 

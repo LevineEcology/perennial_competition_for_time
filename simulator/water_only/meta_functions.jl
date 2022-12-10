@@ -27,7 +27,7 @@ function multi_eq_constant_water(Nspp::Int64 = 10, Niter::Int64 = 10,
         for j in 1:Niter
             spp_data = generate_spp_data(Nspp, 0.8, params[i][2], 100.0, 0.1, 2.5, 0.4, 0.0)
             sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = calc_eqN(spp_data, F, E, params[i][1])[:,:eqN]
-        end fs
+        end
         full_results[:,i] = sub_results
     end
 
@@ -70,15 +70,20 @@ function plot_multi_eq(data::DataFrame, yvar::String = "n", xvar::Symbol = :W₀
 
     if xvar == :W₀
         groupvar = :T
+        xl = "W₀"
+        ll = "T₀"
     else
         groupvar = :W₀
+        xl = "T₀"
+        ll = "W₀"
     end
 
     subdata = data[data.var .== yvar, :]
     p = plot(subdata[:,xvar], subdata.mean, group = subdata[:,groupvar], line_z = subdata[:,groupvar],
              fill_z = subdata[:,groupvar], ribbon = subdata.sd, seriescolor = my_cgrad,
              seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata[:,xvar]), maximum(subdata[:,xvar])],
-             legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3)
+             legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3,
+             xlab = xl, legendtitle = ll, ylab = "# species coexisting", colorbar = false)
 
     if save
         savefig(p, filename)
@@ -170,6 +175,47 @@ function summarize_multi_eq_variable(multi_eq_output::Vector{Any})
 
 end;
 
+function plot_multi_eq_variable(data::DataFrame, yvar::String = "n", xvar::Symbol = :W₀,
+                                Nspp::Int = 10, save::Bool = true, filename = "")
+
+    if xvar == :W₀
+        groupvar = :T
+        xl = "Mean W₀"
+        yl = "σ W₀"
+    else
+        groupvar = :W₀
+        xl = "Mean T₀ (days)"
+        yl = "σ T₀ (days)"
+    end
+
+    subdata = data[data.var .== yvar, :]
+    subdata = subdata[subdata[:, Symbol(string(groupvar) * "sd")] .== 0.0, :]
+    subdata = subdata[.!(isnan.(subdata[:, :mean])), :]
+
+    x1 = Symbol(string(xvar) * "mean")
+    x2 = Symbol(string(xvar) * "sd")
+    groupvar = Symbol(string(groupvar), "mean")
+    subdata[:,groupvar]
+
+    p = plot(subdata[:,x1], subdata[:, x2], subdata.mean, group = subdata[:,groupvar],
+             zcolor = wrap(subdata[:,groupvar]),
+             st = :surface,
+             #surfacecolor = subdata[:,groupvar],
+             seriescolor = my_cgrad,
+             zlim = [0, Nspp], xlim = [minimum(subdata[:,x1]), maximum(subdata[:,x1])],
+             ylim = [minimum(subdata[:,x2]), maximum(subdata[:,x2])],
+             xflip = true,
+             legend = :topleft, frame = :box,  linewidth = 3, fillalpha = 0.7, colorbar = false,
+             xlab = xl, ylab = yl, zlab = "# species persisting")
+
+    subdata
+    if save
+        savefig(p, filename)
+    end
+
+    return p
+
+end;
 
 
 
