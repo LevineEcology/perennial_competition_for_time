@@ -46,11 +46,15 @@ end;
 
 TBW
 """
-function calc_eqN(sd::DataFrame, F::Float64 = F, E::Float64 = E, W₀::Float64 = 0.6)
+function calc_eqN(sd::DataFrame, F::Float64 = F, E::Float64 = E, W₀::Float64 = 0.6, θ_fc = 0.4)
     output = Vector{Int64}(undef, nrow(sd))
     eqN = Vector{Float64}(undef, nrow(sd))
     sd = sort(sd, :Wᵢ, rev = true)
     sg = sigma(μ, l, b)
+
+    if W₀ > θ_fc
+        W₀ = θ_fc
+    end
 
     fs = feas(sd, F, E, W₀)
     eqN[(!in).(sd.spp,Ref(fs))] .= 0

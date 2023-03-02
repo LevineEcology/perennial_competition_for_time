@@ -30,6 +30,10 @@ include("simulation_functions.jl")
 include("eq_functions.jl")
 include("meta_functions.jl")
 
+## set plotting variables
+theme(:dark)
+my_cgrad = cgrad(:acton)
+
 ##---------------------------------------------------------------
 ## 1. check agreement between simulator and equilibrium calculations
 ##---------------------------------------------------------------
@@ -44,20 +48,23 @@ plot_eq_agreement(out, true, "figures/sim_vs_an.pdf")
 ## 2. calculate equilibrium densities under constant, initial
 ##    water contents and interrain interval lengths
 ##---------------------------------------------------------------
-@time results = multi_eq_constant_water(30, 8, 0.1, 0.6, 6, 1.0, 100.0, 6);
+
+## First for dependence on T with 4 values of W₀
+@time results = multi_eq_constant_water(30, 15, 0.4, 0.1, 0.4, 4, 1.0, 140.0, 14);
 summary = summarize_multi_eq(results)
 
-theme(:dark)
-my_cgrad = cgrad(:acton)
+## plot
+plot_multi_eq(summary, "n", :T, results[4], true, "figures/eq_nfeas_T.pdf")
+plot_multi_eq(summary, "min", :T, results[4],true, "figures/eq_minfeas_T.pdf")
+plot_multi_eq(summary, "avg", :T, results[4], true, "figures/eq_avgfeas_T.pdf")
+
+## Then for dependence on W₀ with 4 values of T
+@time results = multi_eq_constant_water(30, 15, 0.4, 0.1, 0.6, 14, 1.0, 140.0, 5);
+summary = summarize_multi_eq(results)
 
 plot_multi_eq(summary, "n", :W₀, results[4], true, "figures/eq_nfeas_W0.pdf")
-plot_multi_eq(summary, "n", :T, results[4], true, "figures/eq_nfeas_T.pdf")
-
 plot_multi_eq(summary, "min", :W₀, results[4], true, "figures/eq_minfeas_W0.pdf")
-plot_multi_eq(summary, "min", :T, results[4],true, "figures/eq_minfeas_T.pdf")
-
 plot_multi_eq(summary, "avg", :W₀, results[4], true, "figures/eq_avgfeas_W0.pdf")
-plot_multi_eq(summary, "avg", :T, results[4], true, "figures/eq_avgfeas_T.pdf")
 
 ##---------------------------------------------------------------
 ## 3. simulate population dynamics under variable W₀ and T
@@ -65,23 +72,37 @@ plot_multi_eq(summary, "avg", :T, results[4], true, "figures/eq_avgfeas_T.pdf")
 spp_data = generate_spp_data(10, 0.7, 40.0, 100.0, 0.1, 2.5, 0.4,
                              0.0)
 
+plot(spp_data.τ, spp_data.Wᵢ, seriestype = :scatter)
+
 out1 = sim_water_only(spp_data, 3000, nrow(spp_data), 1.0)
 out2 = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, true, false,
                                 0.6, 0.1)
 
 plot_simulation_dynamics(out1)
+savefig("figures/simulation_novar.pdf")
 plot_simulation_dynamics(out2)
+savefig("figures/simulation_var.pdf")
 
-out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true,
-                                0.6, 0.1)
+out3 = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true,
+                                0.6, 0.0, 110.0, 30.0)
 
-plot_simulation_dynamics(out)
+plot_simulation_dynamics(out3)
 
 out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true,
                                 0.6, 0.1, 40.0, 20.0)
 
 plot_simulation_dynamics(out)
+savefig("figures/simulation_varT.pdf")
 
+
+@time out = multi_eq_variable_water(30, 20, 4000,
+                                    0.1, 0.6, 5,
+                                    0.0, 0.2, 5,
+                                    1.0, 40.0, 5,
+                                    0.0, 30.0, 5,
+                                    0.4)
+
+## simulations done on cluster for speed. load results CSV from file
 variable_results = CSV.read("simulator_runs.csv", DataFrame)
 
 plot_multi_eq_variable(variable_results, "n", :W₀, 30, true, "figures/eq_nfeas_W0_var.pdf")
@@ -151,3 +172,11 @@ plot(bm_grid, c = :greens)
 ph_grid = copy(sm_sub)
 ph_grid[:,:,1] = diversity_grid2[3]
 plot(ph_grid, c = :blues)
+
+
+
+##---------------------------------------------------------------
+## 5. Simulations for fourth year talk
+##---------------------------------------------------------------
+
+spp_data = generate_spp_data(20)

@@ -205,7 +205,8 @@ function sim_water_only_stochastic(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
                                    Ninit::Float64, rand_W₀::Bool = true,
                                    rand_T::Bool = false,
                                    W₀mean::Float64 = 0.6, W₀sd::Float64 = 0.05,
-                                   Tmean::Float64 = 40.0, Tsd::Float64 = 7.0)
+                                   Tmean::Float64 = 40.0, Tsd::Float64 = 7.0,
+                                   θₘ = 0.4)
 
     ## setup for simulations
     ## generate biomass and population data frames
@@ -235,6 +236,7 @@ function sim_water_only_stochastic(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
     if rand_W₀
         W₀vec = rand(Normal(W₀mean, W₀sd), Nyr)
         W₀vec = replace(x -> isless(x, 0) ? 1e-10 : x, W₀vec)
+        W₀vec = replace(x -> isgreater(x, θₘ) ? θₘ : x, W₀vec)
     else
         W₀vec = repeat([W₀mean], inner = Nyr)
     end
@@ -254,14 +256,14 @@ function sim_water_only_stochastic(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
 
 end;
 
-function plot_simulation_dynamics(results, save::Bool = false)
+function plot_simulation_dynamics(results, save::Bool = false, filename = "")
     pdata = stack(results[2])
     pdata.variable = parse.(Int64, pdata.variable)
 
     p = plot(pdata.rowkey, pdata.value, group = pdata.variable,line_z = pdata.variable,
              ylim = [0, round(maximum(pdata.value) + 100)], xlim = [0, maximum(pdata.rowkey)],
              seriescolor = my_cgrad, seriestype = :line,
-             legend = :topleft, frame = :box, grid = false, linewidth = 1.5)
+             legend = :none, frame = :box, grid = false, linewidth = 2.5)
 
     if save
         savefig(p, filename)

@@ -12,7 +12,7 @@
 
 TBW
 """
-function multi_eq_constant_water(Nspp::Int64 = 10, Niter::Int64 = 10,
+function multi_eq_constant_water(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
                                  minW₀::Float64 = 0.1, maxW₀::Float64 = 0.6, lengthW₀::Int64 = 10,
                                  minT::Float64 = 1.0, maxT::Float64 = 100.0, lengthT::Int64 = 10)
 
@@ -26,7 +26,7 @@ function multi_eq_constant_water(Nspp::Int64 = 10, Niter::Int64 = 10,
         sub_results = Vector{Float64}(undef, Nspp*Niter)
         for j in 1:Niter
             spp_data = generate_spp_data(Nspp, 0.8, params[i][2], 100.0, 0.1, 2.5, 0.4, 0.0)
-            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = calc_eqN(spp_data, F, E, params[i][1])[:,:eqN]
+            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = calc_eqN(spp_data, F, E, params[i][1], θ_fc)[:,:eqN]
         end
         full_results[:,i] = sub_results
     end
@@ -78,12 +78,20 @@ function plot_multi_eq(data::DataFrame, yvar::String = "n", xvar::Symbol = :W₀
         ll = "W₀"
     end
 
+    if yvar == "n"
+        yl = "# species coexisting"
+    elseif yvar == "min"
+        yl = "Min. ID of coexisting species"
+    else
+        yl = "Avg. ID of coexisting species"
+    end
+
     subdata = data[data.var .== yvar, :]
     p = plot(subdata[:,xvar], subdata.mean, group = subdata[:,groupvar], line_z = subdata[:,groupvar],
              fill_z = subdata[:,groupvar], ribbon = subdata.sd, seriescolor = my_cgrad,
              seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata[:,xvar]), maximum(subdata[:,xvar])],
              legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3,
-             xlab = xl, legendtitle = ll, ylab = "# species coexisting", colorbar = false)
+             xlab = xl, legendtitle = ll, ylab = yl, colorbar = false)
 
     if save
         savefig(p, filename)
@@ -116,7 +124,8 @@ function multi_eq_variable_water(Nspp::Int64 = 10, Niter::Int64 = 10,
                                  minTmean::Float64 = 1.0, maxTmean::Float64 = 100.0,
                                  lengthTmean::Int64 = 10,
                                  minTsd::Float64 = 0.0, maxTsd::Float64 = 30.0,
-                                 lengthTsd::Int64 = 10)
+                                 lengthTsd::Int64 = 10,
+                                 θₘ = 0.4)
 
     W₀mean_list = collect(range(minW₀mean, stop = maxW₀mean, length = lengthW₀mean));
     W₀sd_list = collect(range(minW₀sd, stop = maxW₀sd, length = lengthW₀sd));
@@ -132,7 +141,7 @@ function multi_eq_variable_water(Nspp::Int64 = 10, Niter::Int64 = 10,
         for j in 1:Niter
             spp_data = generate_spp_data(Nspp, 0.8, params[i][3], 100.0, 0.1, 2.5, 0.4, 0.0)
             sim .= Vector(sim_water_only_stochastic(spp_data, Nyr_sim, nrow(spp_data), 1.0, true, true,
-                                                    params[i][1], params[i][2], params[i][3], params[i][4])[2][Nyr_sim, 2:Nspp+1])
+                                                    params[i][1], params[i][2], params[i][3], params[i][4])[2][Nyr_sim, 2:Nspp+1], θₘ)
             sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] .= replace(x -> isless(x, 1e-15) ? 0 : x, sim)
         end
         full_results[:,i] = sub_results

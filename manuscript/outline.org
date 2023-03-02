@@ -1,0 +1,40 @@
+#+title: Precipitation and biodiversity manuscript outline
+#+author: Jacob Levine
+
+* Overview
+
+- Understanding how changes to the Earth's climate will effect biodiversity is one of the most important ecological challenges of this century.
+- One element of the Earth's climate that is expected to change drastically, and which has direct consequences for ecosystem function, is precipitation.
+- Understanding the response of ecosystems to changing precipitation requires a clear grasp of how species compete for and coexist on limited water resources. Specifically, it requires understanding how tradeoffs regarding species' abilities to compete for water impact competitive outcomes
+- There is a large literature of theory and empirical work which examines the roles of such tradeoffs.
+- In this paper we synthesize and formalize these ideas, leveraging an ecophysiologically grounded, tractable model of competition for limited water resources to understand and predict changes to biodiversity under changing precipitation patterns.
+
+* Introduction
+
+* Methods
+
+** Shutdown time
+
+\begin{equation}
+   t_{i-1} + \frac{W_{i-1} - W_i}{E \sum_{j=i}^Q\lambda_{j}}
+\end{equation}
+
+** Break-even time
+
+\begin{equation}
+     \frac{1}{g_{i,1} + g_{i,2}} \left[ \frac{1}{F_i \sum_{j=1}^{\infty}(1-\mu)^j j^l} + T g_{i,2} \right]
+\end{equation}
+
+** Equilibrium density
+
+\begin{equation}
+\frac{F^{\frac{b-1}{b}}}{E}\left(\frac{\left(\sum_{j=1}^{\infty}(1-\mu)^{j}j^b\right)^{\frac{l}{b}}}{\sum_{j=1}^{\infty}(1-\mu)^{j}j^l}\right) \left[\frac{W_0 - W^*_1}{\tau^*_1} - \frac{W^*_1 - W^*_2}{\tau^*_2 - \tau^*_1} \right]
+\end{equation}
+
+\begin{equation}
+\frac{F^{\frac{b-1}{b}}}{E}\left(\frac{\left(\sum_{j=1}^{\infty}(1-\mu)^{j}j^b\right)^{\frac{l}{b}}}{\sum_{j=1}^{\infty}(1-\mu)^{j}j^l}\right) \left[\frac{W^*_{Q-1} - W^*_Q}{\tau^*_Q - \tau^*_{Q-1}}} \right]
+\end{equation}
+
+\begin{equation}
+\frac{F^{\frac{b-1}{b}}}{E}\left(\frac{\left(\sum_{j=1}^{\infty}(1-\mu)^{j}j^b\right)^{\frac{l}{b}}}{\sum_{j=1}^{\infty}(1-\mu)^{j}j^l}\right) \left[\frac{W^*_{i-1} - W^*_i}{\tau^*_i - \tau^*_{i-1}} - \frac{W^*_i - W^*_{i+1}}{\tau^*_{i+1} - \tau^*_i} \right]
+\end{equation}

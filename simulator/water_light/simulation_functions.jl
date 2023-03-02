@@ -285,7 +285,7 @@ function plot_simulation_dynamics(results, save::Bool = false)
     end
 
     p = plot(xd, yd, group = gd, line_z = gd,
-             ylim = [0, round(maximum(yd) + 100)], xlim = [0, maximum(xd)],
+             ylim = [1, round(maximum(yd) + 100)], xlim = [0, maximum(xd)],
              seriescolor = my_cgrad, seriestype = :line, lw = 2,
              legend = :topleft, frame = :box, grid = false, linewidth = 1.5,
              colorbar = false)

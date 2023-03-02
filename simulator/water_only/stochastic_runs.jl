@@ -26,6 +26,7 @@ out = multi_eq_variable_water(30, 20, 4000,
                               0.1, 0.6, 5,
                               0.0, 0.2, 5,
                               1.0, 40.0, 5,
-                              0.0, 30.0, 5)
+                              0.0, 30.0, 5,
+                              0.4)
 CSV.write("simulator_runs.csv", out)
 

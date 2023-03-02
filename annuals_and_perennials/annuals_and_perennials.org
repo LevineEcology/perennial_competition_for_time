@@ -1,0 +1,29 @@
+#+TITLE: Competition for water: annuals & perennials
+#+AUTHOR: Jacob Levine
+
+#+OPTIONS: toc:nil
+#+latex_header: \renewcommand{\familydefault}{\sfdefault}
+
+* Annual model with seed survival dependent on dry-season length
+
+In the original annual plant model, the population dynamics of a species \(i\) are given by:
+
+\begin{equation} \label{eq:annual_standard}
+    \frac{N_{i,T+1}}{N_{i,T}} = F_i G_i^B t_i^B
+\end{equation}
+
+where \(t_i = \left[\sum_{j=1}^{i}\frac{ W_{j-1} - W_{j}}{\sum_{k=j}^Q N_{k}G_k^L} \right]\). Now, assume that the quantity of seeds produced by species \(i\) declines linearly in the time between when species \(i\) finishes its growing season and the start of the subsequent growing season. As a result, equation \ref{eq:annual_standard}, becomes:
+
+\begin{equation} \label{annual_seedsurvival}
+    \frac{N_{i,T+1}}{N_{i,T}} = F_i G_i^B t_i^B - \mu_{s,i} \left[T_0 - t_i\right]
+\end{equation}
+
+where \(\mu_{s,i}\) is the rate at which the density of seeds of species \(i\) declines after being produced and \(T_0\) is the length of the full season from rain to rain. Under this formulation, there is no simple expression for a species' break-even time, \(\tau_i^B = t_i^B\). Instead, species \(i\)'s break-even time is determined by solving the following expression for \(t_i^B\):
+
+\begin{equation*}
+    1 + \mu_{s,i} T_0 = t_i \left[ F_i G_i^B t_i^{B-1} + \mu_{s,i} \right]
+\end{equation*}
+
+This expression can be solved explicitly for integer values of \(B\), or numerically in general. Regardless, we see that intuitively, increases in \(T_0\) lead to increases in break-even time. This reflects the fact that a longer season translates to more time spent in the soil, during which seeds perish. Increases in \(\mu_{s,i}\) likewise result in increased break-even time (because we constrain \(T_0 > t_i\)). Finally, as in the annual model, increased fecundity and growth rates lead to reductions in break-even time.
+
+* Annual model with seed survival dependent on dry-season length and persistent seed bank

@@ -1,0 +1,76 @@
+% Created 2023-03-01 Wed 12:19
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\author{Jacob Levine}
+\date{\today}
+\title{Precipitation and biodiversity manuscript outline}
+\hypersetup{
+ pdfauthor={Jacob Levine},
+ pdftitle={Precipitation and biodiversity manuscript outline},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 28.2 (Org mode 9.6)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+
+\section{Overview}
+\label{sec:orgb5eefdc}
+
+\begin{itemize}
+\item Understanding how changes to the Earth's climate will effect biodiversity is one of the most important ecological challenges of this century.
+\item One element of the Earth's climate that is expected to change drastically, and which has direct consequences for ecosystem function, is precipitation.
+\item Understanding the response of ecosystems to changing precipitation requires a clear grasp of how species compete for and coexist on limited water resources. Specifically, it requires understanding how tradeoffs regarding species' abilities to compete for water impact competitive outcomes
+\item There is a large literature of theory and empirical work which examines the roles of such tradeoffs.
+\item In this paper we synthesize and formalize these ideas, leveraging an ecophysiologically grounded, tractable model of competition for limited water resources to understand and predict changes to biodiversity under changing precipitation patterns.
+\end{itemize}
+
+\section{Introduction}
+\label{sec:org58e705d}
+
+\section{Methods}
+\label{sec:orgb3b9295}
+
+\subsection{Shutdown time}
+\label{sec:org040be70}
+
+\begin{equation}
+   t_{i-1} + \frac{W_{i-1} - W_i}{E \sum_{j=i}^Q\lambda_{j}}
+\end{equation}
+
+\subsection{Break-even time}
+\label{sec:orgc103a55}
+
+\begin{equation}
+     \frac{1}{g_{i,1} + g_{i,2}} \left[ \frac{1}{F_i \sum_{j=1}^{\infty}(1-\mu)^j j^l} + T g_{i,2} \right]
+\end{equation}
+
+\subsection{Equilibrium density}
+\label{sec:orgc48d5f3}
+
+\begin{equation}
+\frac{F^{\frac{b-1}{b}}}{E}\left(\frac{\left(\sum_{j=1}^{\infty}(1-\mu)^{j}j^b\right)^{\frac{l}{b}}}{\sum_{j=1}^{\infty}(1-\mu)^{j}j^l}\right) \left[\frac{W_0 - W^*_1}{\tau^*_1} - \frac{W^*_1 - W^*_2}{\tau^*_2 - \tau^*_1} \right]
+\end{equation}
+
+\begin{equation}
+\frac{F^{\frac{b-1}{b}}}{E}\left(\frac{\left(\sum_{j=1}^{\infty}(1-\mu)^{j}j^b\right)^{\frac{l}{b}}}{\sum_{j=1}^{\infty}(1-\mu)^{j}j^l}\right) \left[\frac{W^*_{Q-1} - W^*_Q}{\tau^*_Q - \tau^*_{Q-1}}} \right]
+\end{equation}
+
+\begin{equation}
+\frac{F^{\frac{b-1}{b}}}{E}\left(\frac{\left(\sum_{j=1}^{\infty}(1-\mu)^{j}j^b\right)^{\frac{l}{b}}}{\sum_{j=1}^{\infty}(1-\mu)^{j}j^l}\right) \left[\frac{W^*_{i-1} - W^*_i}{\tau^*_i - \tau^*_{i-1}} - \frac{W^*_i - W^*_{i+1}}{\tau^*_{i+1} - \tau^*_i} \right]
+\end{equation}
+\end{document}
