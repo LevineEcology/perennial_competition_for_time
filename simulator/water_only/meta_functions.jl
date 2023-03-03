@@ -141,7 +141,7 @@ function multi_eq_variable_water(Nspp::Int64 = 10, Niter::Int64 = 10,
         for j in 1:Niter
             spp_data = generate_spp_data(Nspp, 0.8, params[i][3], 100.0, 0.1, 2.5, 0.4, 0.0)
             sim .= Vector(sim_water_only_stochastic(spp_data, Nyr_sim, nrow(spp_data), 1.0, true, true,
-                                                    params[i][1], params[i][2], params[i][3], params[i][4])[2][Nyr_sim, 2:Nspp+1], θₘ)
+                                                    params[i][1], params[i][2], params[i][3], params[i][4], θₘ)[2][Nyr_sim, 2:Nspp+1])
             sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] .= replace(x -> isless(x, 1e-15) ? 0 : x, sim)
         end
         full_results[:,i] = sub_results

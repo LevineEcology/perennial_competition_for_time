@@ -236,7 +236,7 @@ function sim_water_only_stochastic(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
     if rand_W₀
         W₀vec = rand(Normal(W₀mean, W₀sd), Nyr)
         W₀vec = replace(x -> isless(x, 0) ? 1e-10 : x, W₀vec)
-        W₀vec = replace(x -> isgreater(x, θₘ) ? θₘ : x, W₀vec)
+        W₀vec = replace(x -> !isless(x, θₘ) ? θₘ : x, W₀vec)
     else
         W₀vec = repeat([W₀mean], inner = Nyr)
     end
