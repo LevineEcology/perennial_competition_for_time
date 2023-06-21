@@ -20,7 +20,7 @@ W₀::Float64 = 0.6 ## initial water content (default)
 ## include function headers
 include("simulation_functions.jl")
 include("eq_functions.jl")
-include("meta_functions.jl")
+include("meta_functions.jl")a
 
 out = multi_eq_variable_water(30, 20, 4000,
                               0.1, 0.6, 5,

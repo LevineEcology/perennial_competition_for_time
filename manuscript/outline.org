@@ -1,17 +1,247 @@
 #+title: Precipitation and biodiversity manuscript outline
 #+author: Jacob Levine
 
-* Overview
-
-- Understanding how changes to the Earth's climate will effect biodiversity is one of the most important ecological challenges of this century.
-- One element of the Earth's climate that is expected to change drastically, and which has direct consequences for ecosystem function, is precipitation.
-- Understanding the response of ecosystems to changing precipitation requires a clear grasp of how species compete for and coexist on limited water resources. Specifically, it requires understanding how tradeoffs regarding species' abilities to compete for water impact competitive outcomes
-- There is a large literature of theory and empirical work which examines the roles of such tradeoffs.
-- In this paper we synthesize and formalize these ideas, leveraging an ecophysiologically grounded, tractable model of competition for limited water resources to understand and predict changes to biodiversity under changing precipitation patterns.
-
-* Introduction
+#+latex_header: \renewcommand{\familydefault}{\sfdefault}
 
 * Methods
+
+
+* Cohort/stage-structured model
+
+Description of the model that lines up with simulator.
+
+Lifetime reproductive success of an individual at population dynamic equilibrium is equal to a rate of conversion from biomass to fecundity per unit time, \(F_i\), times the sum of its biomass at each point of reproduction (end of rain-period), multiplied by the length between each reproductive period, discounted for mortality from 1 to infinity.
+
+\begin{equation}
+    L_i^*  = F_i \sum_{j=1}^{\infty} e^{-\mu T j} j^b T^b T G(\tau_i^*)^b
+\end{equation}
+
+which simplifies to
+
+\begin{equation}
+    L_i^*  = F_i G(\tau_i^*)^b T^{b+1} Li_{-b}(e^{-\mu T })
+\end{equation}
+
+where \(Li_{-b}(e^{-\mu T })\) is the polylogarithm function equal to \(\sum_{j=1}^{\infty} e^{-\mu T j} j^b\).
+
+At lifetime reproductive success = 1, species \(i\) is at population dynamic equilibrium. The season length \(\tau_i^*\) which makes species \(i\) at this population dynamic equilibrium is calculated from the following expression:
+
+\begin{equation}
+    \tau_i^* = \frac{T}{C_1 + C_2} \left[ \left( \frac{1}{F_i T^{b+1} Li_{-b}(e^{-\mu T})} \right)^{\frac{1}{b}} + C_2 \right]
+\end{equation}
+
+also note that
+
+\begin{equation}
+    G(\tau_i^*) = \left( \frac{1}{F_i T^{b+1} Li_{-b}(e^{-\mu T})} \right)^{\frac{1}{b}}
+\end{equation}
+
+The total leaf area of species \(i\) at population dynamic equilibrium is found by summing across all cohorts the product of the equilibrium seed production in each rain interval, \(r_i^*\), and the expected leaf are of each cohort:
+
+\begin{equation}
+    \Lambda_i^* = r_i^*  \left( \frac{1}{F_i T^{b+1} Li_{-b}(e^{-\mu T})} \right)^{\frac{b-1}{b}} T^{b-1} Li_{-b-1}(e^{-\mu T})
+\end{equation}
+
+using expressions for water consumption (assuming plants consume water proportional to their leaf area at the beginning of each rain interval), we solve for the equilibrum seed production:
+
+\begin{equation}
+    r_i^* = \frac{\left(F_i T Li_{-b}(e^{-\mu T}) \right)^{\frac{b-1}{b}}}{E Li_{-b-1}(e^{\mu T})} \left[ \frac{\Delta W_i^*}{\Delta \tau_i^*} - \frac{\Delta W_{i+1}^*}{\Delta \tau_{i+1}^*} \right]
+\end{equation}
+
+which makes the equilibrium population density:
+
+\begin{equation}
+    N_i^* = \left(\frac{e^{\mu T}}{e^{\mu T} - 1}\right) \frac{\left(F_i T Li_{-b}(e^{-\mu T}) \right)^{\frac{b-1}{b}}}{E Li_{-b-1}(e^{-\mu T})} \left[ \frac{\Delta W_i^*}{\Delta \tau_i^*} - \frac{\Delta W_{i+1}^*}{\Delta \tau_{i+1}^*} \right]
+\end{equation}
+
+
+* Analytical (non-cohort model)
+
+First assume that respiration and mortality rates are common to all species.
+
+** Lifetime reproductive success (LRS) of an individual of species \(i\) in cohort \(j\) in disequilibrium
+
+\begin{equation}
+    L_{i,j} = \int_0^\infty F_i e^{-\mu t} \sum_{k=1}^{\lfloor \frac{t}{T} \rfloor} G_i(\tau_{i,j}(k))^B T^B + G_i(\tau_{i,j}(\lfloor \frac{t}{T} \rfloor + 1))^B (t \pmod{T})^B dt
+\end{equation}
+
+** LRS of an individual of species \(j\) in equilibrium
+
+\begin{equation}
+    L_{i}^* = \int_0^\infty F_i e^{-\mu t} G_i(\tau_i^*)^B t^B dt = 1
+\end{equation}
+
+It is set equal to \(1\), because this condition defines the equilibrium. This simplifies to
+
+\begin{equation} \label{eq:lrs_eq}
+    L_{i}^* = F_i G_i(\tau_i^*)^B \mu^{-(B+1)} \Gamma(B+1) = 1
+\end{equation}
+
+** Deriving the break-even time
+
+To find the breakeven time we solve equation \ref{eq:lrs_eq} for \(\tau_i^*\), noting that \(G_i(\tau_i) = \frac{1}{T}\left(\tau_i g_{i,1} + (T - \tau_i}) g_{i,2} \right) \):
+
+\begin{equation}
+    \tau_i^*(T, g_{i,1}) = \frac{T}{g_{i,1} + g_{i,2}}\left[\left(\frac{\mu^{B+1}}{F_i \Gamma(B+1)}\right)^{\frac{1}{B}} + g_{i,2}\right]
+\end{equation}
+
+Thus, the partial derivative of break-even time with respect to T is:
+
+\begin{equation} \label{eq:partial_full}
+    \frac{\partial}{\partial T}\tau_i^*(T, g_{i,1}) = \frac{1}{g_{i,1} + g_{i,2}}\left[\left(\frac{\mu^{B+1}}{F_i \Gamma(B+1)}\right)^{\frac{1}{B}} + g_{i,2}\right]
+\end{equation}
+
+If we assume \(\left(\frac{\mu^{B+1}}{F_i \Gamma(B+1)}\right)^{\frac{1}{B}} \ll 1\), which it is when either mortality is small relative to interrain interval length, \(T\), or fecundity is high, then the partial derivative becomes:
+
+\begin{equation} \label{eq:partial_partial}
+    \frac{\partial}{\partial T}\tau_i^*(T, g_{i,1}) = \frac{g_{1,2}}{g_{i,1} + g_{i,2}}
+\end{equation}
+
+which is constrained to be less than 1, and increases with decreasing growth rate, \(g_{i,1}\)
+
+** Equilibrium population density
+
+To solve for the equilibrium population density analytically, we employ a separation of timescales such that an individual's rate of evapotranspiration during an inter-rain interval is proportional to its leaf area at the start of that interval. This approximation is reasonable when the inter-rain interval length is small relative to the timescale of mortality, and evaporation from new growth/seedlings is small. Without this approximation, the equilibrium population density can still be solved numerically, but it is helpful to have an analytical solution even for a special case.
+
+Given this assumption, they consumption of soil water during an inter-rain interval is governed by the following expression:
+
+\begin{equation} \label{eq:water_dynamics}
+    W_{i-1}^* - W_i^* = (\tau_i - \tau_{i-1}) E \sum_{j=i}^Q \Lambda_j^*
+\end{equation}
+
+where \(E\) is the rate of transpiration per unit leaf area, a constant shared by all species, and \(\Lambda_j^*\) is the total leaf area of species \(j\) at equilibrium which is given by:
+
+\begin{equation}
+   \Lambda_j^* = r_i^* \int_0^{\infty} e^{-\mu t} G_i (\tau_i^*)^B t^B dt
+\end{equation}
+
+where \(r_i^*\) is the number of new individuals produced per unit time at equilibrium. Using this expression we can solve equation \ref{eq:water_dynamics} iteratively for \(r_i^*\), finding:
+
+\begin{equation}
+    r_1^* = \frac{F_1^{\frac{B-1}{B}}}{ \Gamma (B + 1)^{\frac{B-1}{B}} E \mu^{\frac{1}{B}} \Gamma (B)} \left(\frac{W_0 - W_1^*}{\tau_1^*} - \frac{W_1^* - W_2^*}{\tau_2^* - \tau_1^*}}\right)
+\end{equation}
+
+\begin{equation}
+    r_{1<i<Q}^* = \frac{F_i^{\frac{B-1}{B}}}{ \Gamma (B + 1)^{\frac{B-1}{B}} E \mu^{\frac{1}{B}} \Gamma (B)} \left(\frac{W_{i-1} - W_i^*}{\tau_i^* - \tau_{i-1}^*} - \frac{W_i^* - W_{i+1}^*}{\tau_{i+1}^* - \tau_i^*}}\right)
+\end{equation}
+
+\begin{equation}
+    r_Q^* = \frac{F_Q^{\frac{B-1}{B}}}{ \Gamma (B + 1)^{\frac{B-1}{B}} E \mu^{\frac{1}{B}} \Gamma (B)} \left(\frac{W_{Q-1} - W_Q^*}{\tau_Q^* - \tau_{Q-1}^*}}\right)
+\end{equation}
+
+Finally, we find the total population density by integrating the product of \(r_i^*\) and \(e^(-\mu t)\) from \(0\) to \(\infty\) finding that
+
+\begin{equation}
+    N_i^* = \frac{r_i^*}{\mu}
+\end{equation}
+
+Thus, the feasibility condition for any species \(i \neq Q\) is given by:
+
+\begin{equation} \label{eq:feas}
+    \frac{\Delta W_i^*}{\Delta \tau_i^*} > \frac{\Delta W_{i+1}^*}{\Delta \tau_{i+1}^*}
+\end{equation}
+
+where \(\Delta W_i^* = W_i^* - W_{i-1}^*\), \(\Delta \tau_i^* = \tau_{i+1}^* - \tau_i^*\), and \(\tau_0^* = 0\).
+
+Though at first glance it appears that the equilbrium population density of a species does not depend on the inter-rain interval length, it does in fact depend on \(T\). To see this we need to re-express \(\tau_i^*\) as a function of \(T\) and then take the partial derivative of equilibrium population density with respect to T, finding:
+
+\begin{equation}
+    \frac{\partial}{\partial T} N_i^* (T) = -A_i \left[ \frac{ \frac{1}{B_{i}} - \frac{1}{B_{i+1} - B_{i}} }{T^{2}} \right]
+\end{equation}
+
+for \(i \neq Q\) where \(A_i = \frac{F_i^{\frac{B-1}{B}}}{ \Gamma (B + 1)^{\frac{B-1}{B}} E \mu^{\frac{1}{B}} \Gamma (B)} \) and \(B_i = \frac{1}{g_{i,1} + g_{i,2}}\left[\left(\frac{\mu^{B+1}}{F_i \Gamma(B+1)}\right)^{\frac{1}{B}} + g_{i,2}\right]\) and
+
+\begin{equation}
+    \frac{\partial}{\partial T} N_Q^* (T) = -A_Q \left[ \frac{ \frac{1}{B_{i+1} - B_{i}} }{T^{2}} \right]
+\end{equation}
+
+The first of these expressions is negative provided the feasibility condition is met while the second is strictly negative, meaning species' equilibrium population densities decline with increasing inter-rain intervals.
+
+** Minimum viable growth rate
+
+For a given respiration rate there is a minimum feasible growth rate, which is the growth rate that allows a species to overcome population decline due to density independent mortality when growing full out all of the time (i.e. hitting their critical water content exactly as the next storm arrives).
+
+We derive this minimum growth rate by considering the lifetime reproductive success of an individual which never shuts down (never respires). The LRS of this individual is given by:
+
+\begin{equation}
+    L_i = \int_0^\infty F_i g_i^B t^B e^{-\mu_i t} dt
+\end{equation}
+
+To get the minimum feasible \(g_i\), we set the above expression to \(1\), finding the following condition for viability:
+
+\begin{equation} \label{eq:min_viable}
+    g_{min} = \left(\frac{\mu^{B+1}}{F_i \Gamma(B+1)}\right)^{\frac{1}{B}}
+\end{equation}
+
+** Effect of changes in interrain interval length
+
+*** For late species
+
+The latest feasible species, \(i=Q\), for a given \(F\) and \(\mu\) pairing is given by equation \ref{eq:min_viable} provided the tradeoff between critical water content and growth rate is strict. This species will remain the latest feasible species regardless of the interrain interval length, as its existence is predicated on growing for exactly as long as the interrain interval length. Its equilibrium population density, however, will increase with decreasing \(T\), and vis versa. Thus it cannot be excluded through modifications to \(T\).
+
+The next latest species also cannot be excluded due to modifications to \(T\), provided it originally persisted in the community. To illustrate, assume all species are evenly spaced in \(W_i^*\). When this is true, the condition for coexistence is that \(\tau_{i+1}^* - \tau_{i}^* > \tau_i^* - \tau_{i-1}^*\). Because break-even time is a linear function of \(T\), and because break-even time must be \(0\) when \(T = 0\), then if the coexistence condition is satisfied for one value of \(T\), it must be satisfied for all values of \(T > 0\). Therefore, species with earlier phenology than species \(Q\), but which are not the earliest species (species \(1\)), cannot be excluded due to changes in \(T\)
+
+It is worth noting, however, that while the tradeoff is maintained in terms of the sign of its first and second derivatives (the values critical for coexistence), the absolute shape of the tradeoff is modified by changes to \(T\). The second latest species, species \(Q-1\), experiences changes in break-even time according to the inter-rain interval length. When \(T\) is decreased, \(\tau_{Q-1}^*\) also decreases at a rate given by equation \ref{eq:partial_full}, which we approximate as equation \ref{eq:partial_partial}. Thus, species \(Q-1\)'s break-even time decreases proportional to decreases in \(T\), at a rate which is constrained to be less than 1, and larger than the rate for the next latest species, species \(Q-2\). Species \(Q\)'s break-even time decreases at the same rate as \(T\), as to persist it must never cause soil water to dip below its critical water content. As species \(Q-1\)'s break-even time decreases at a rate less than species \(Q\)'s and more than species \(Q-2\)'s, the tradeoff will be compressed. For increases in \(T\) the reverse is true.
+
+*** For early species
+
+The earliest feasible species for a given combination of \(F\), \(\mu\) and \(W_0\) is the one with a growth rate and critical water content pairing such that a straight line drawn from these points to the point given by \(\tau_i^* = 0, W = W_0\) is exactly tangent to the tradeoff curve. This species is the best competitor for water over the course of its lifespan, meaning that at equilibrium it consumes water at the greatest total rate of any species. Other species may grow faster, and therefore consume water at a greater rate per capita than the earliest feasible species. However, the /total/ water consumption rate of these species is limited by time: they must grow long enough to at least replace their population and thus cannot consume water as fast (as a population) as slightly slower growing species.
+
+Perhaps surprisingly, the identity of this best competitor does not change with modifications to \(T\). A mathematical explanation will follow, but the reason is that the relative competitive ability of species is independent of inter-rain interval size. A species' competitive ability is defined by the maximum rate at which a population can consume water and reach a total lifetime reproductive success of \(1\). This rate is determined by each species' vital rates (critical water content, mortality, growth, respiration, and reproduction), as well as the inter-rain interval length, \(T\). Two specis' relative competitive ability, however, is determined only by the difference in their vital rates. This makes some intuitive sense. The temporal component of competitive ability is determined by a species' ability to accrue future reproduction. Changing the inter-rain interval length alters the total amount of time a species has to grow between storms, because it alters the length of time respiration occurs for, but it does not impact the ability of species to accrue reproduction during the time they are actively growing.
+
+We can see this mathematically by deriving the relative competitive ability of two species. To do so, we first write down an expression for the maximum water consumption rate, \(\omega\) for a species \(i\):
+
+\begin{equation}
+    \omega_i = \frac{W_{i-1}^* - W_i^*}{\tau_i^* - \tau_{i-1}^*}
+\end{equation}
+
+Thus, the relative competitive ability of two species, \(i\), and \(i+1\) is given by the following expression
+
+\begin{equation}
+    \frac{\omega_i}{\omega_{i+1}} = \frac{W_{i-1}^* - W_i^*}{W_{i}^* - W_{i+1}^*} \left( \frac{\tau_{i+1}^*(T) - \tau_i^*(T)}{\tau_i^*(T) - \tau_{i-1}^*(T)} \right)
+\end{equation}
+
+Here noting that break-even time is a function of inter-rain interval length by writing \(\tau_i^* (T)\). Substituting the expression for break-even time into this expression, we begin to see how the relative competitive abilities are independent of \(T\):
+
+\begin{equation*}
+    \frac{\omega_i}{\omega_{i+1}} = \frac{W_{i-1}^* - W_i^*}{W_{i}^* - W_{i+1}^*} \left( \frac{T \frac{g_2}{g_{i+1,1} + g_2} A - T \frac{g_2}{g_{i,1} + g_2} A}{T \frac{g_2}{g_{i,1} + g_2} A - T \frac{g_2}{g_{i-1,1} + g_2} A} \right)
+\end{equation*}
+
+where \(A = \left(\frac{\mu^{B+1}}{F_i \Gamma(B+1)}\right)^{\frac{1}{B}}\). Factoring out \(T\) and \(A\) from the expression for each species' break-even time we see that the expression simplifies to:
+
+\begin{equation}
+    \frac{\omega_i}{\omega_{i+1}} = \frac{W_{i-1}^* - W_i^*}{W_{i}^* - W_{i+1}^*} \left( \frac{\frac{g_2}{g_{i+1,1} + g_2} - \frac{g_2}{g_{i,1} + g_2}}{ \frac{g_2}{g_{i,1} + g_2}  -  \frac{g_2}{g_{i-1,1} + g_2} } \right)
+\end{equation}
+
+which has no dependence on inter-rain interval, \(T\).
+
+**** Incomplete extra explanation (probably not necessary )
+
+An even more complete mathematical explanation can be found by considering what happens to the invasion condition for the earliest species in a community when \(T\) is modified. Recall that the invasion condition for this species is the following:
+
+\begin{equation} \label{eq:invasion_cond}
+    \frac{W_0 - W_1^*}{\tau_1^*} > \frac{W_1^* - W_2^*}{\tau_2^* - \tau_1^*}
+\end{equation}
+
+To simplify things, lets assume that the species are equally spaced in critical water content from the initial water content, (i.e. \(W_0 - W_1^* = W_1^* - W_2^*\)). We also assume that species 1 and 2 coexist for an initial value of \(T\) which we label \(T_0\), meaning the invasion condition is satisfied. For this to remain true after a modification to \(T\), the following condition must be satisfied:
+
+\begin{equation} \label{eq:invasion_cond_mod}
+    \tau_1^*(T_0) + \Delta T \frac{\partial}{\partial T} \tau_1^* (T) < \tau_2^*(T_0) - \tau_1^*(T_0) + \Delta T \left( \frac{\partial}{\partial T} \tau_2^* (T) - \frac{\partial}{\partial T} \tau_1^* (T) \right)
+\end{equation}
+
+From equation \ref{equation_cond}, we know that \(\tau_2^* (T_0) > 2 \tau_1^* (T_0) \) as this is the requirement for coexistence when the numerators are equivalent. Substituting this inequality into equation \ref{eq:invasion_cond_mod} and simplifying we find:
+
+\begin{equation} \label{eq:invasion_cond_mod2}
+    \frac{\partial}{\partial T} \tau_2^* (T) >  2 \frac{\partial}{\partial T} \tau_1^* (T)
+\end{equation}
+
+Recall that \(\frac{\partial}{\partial T} \tau_i^* (T) = \frac{g_2}{g_{i,1} + g_2} A \), where \(A = \left(\frac{\mu^{B+1}}{F_i \Gamma(B+1)}\right)^{\frac{1}{B}}\). Thus, equation \ref{eq:invasion_cond_mod2} simplifies further to:
+
+\begin{equation}
+
+\end{equation}
+
+
 
 ** Shutdown time
 
@@ -38,3 +268,51 @@
 \begin{equation}
 \frac{F^{\frac{b-1}{b}}}{E}\left(\frac{\left(\sum_{j=1}^{\infty}(1-\mu)^{j}j^b\right)^{\frac{l}{b}}}{\sum_{j=1}^{\infty}(1-\mu)^{j}j^l}\right) \left[\frac{W^*_{i-1} - W^*_i}{\tau^*_i - \tau^*_{i-1}} - \frac{W^*_i - W^*_{i+1}}{\tau^*_{i+1} - \tau^*_i} \right]
 \end{equation}
+
+
+* Notes from meeting with Steve
+
+
+Plan:
+
+- re-analysis data, boundaries where you lose all water-partitioning diversity.
+
+
+
+Contrasting effects of spatial and temporal variation in rainfall - Jonathan and Steve
+
+
+
+** Paper
+
+-
+
+- maybe work on figure 4.
+
+- be a bit more honest, a lot of the individual-based work with empirical competition are about growth rates. Physiological theory changes thing. Other results may have been about time. Seabloom paper, invoking. When we try to interpret these in light of phenomenological competition models it requires a shift in scale, but not clear how to do so in the case of water. In this paper we look for their critical and most obvious signature. Doesnt give something more complicated.
+
+- a lot of diversity might turn out to be successional diversity, just not sure.
+
+- what to make of the different phenomenological fits. The model does in fact predict more coexistence, not clear whether thats just because quirk of mechanistic model (or if thats bad). The fundamental prediction that there is a time threshold for late species is true. Phenomenological model is further test of mechanistic. Dont fit well without the residuum.
+
+- two things that have changed: discontinuous supply rate will create some coexistence to begin with
+
+- Macarthur consumer resource, made an assumption about interspecific competition for prey.
+
+- Chesson, population dynamic growth rates. assume that individual-scale competitive responses were in some way close enough to population dynamic ones.
+
+- Schoener model, consumer-resource models -- individual-based.
+
+- Okay, if the distinction isn't perfect. Don't have to set up a straw man. The theory developed primarily from phenomenological models would lead you to believe that this is the distinction. An individual perspective shows that at these scales, competition for time is really whats going. And then say, this competition for time, when you upscale produces similar, but critically different functional forms in which coexistence is easier. Critical fingerprint which you can see in this, and we look for it and its there.
+
+- Don't say, in there, but the water-mafia was expecting a gradual shutoff.
+
+- Known for a long time that species can capitilize and divide variation in space and time. Requires the environment to present heterogeneity. Here, the mechanism is inescapable.
+
+- In many ways all I have shown here is succession. Even if its not driven by water.
+
+- environmental modification.
+
+- reason we can understand this model, is that they grow flat out and nonstop. Otherwise everything is nonlinear and impossible to solve.
+
+- Why is it that there were no land plants? Hard to move water. Where are plants up against the wall, should all of a sudden be inable to move water. Soil holds water with differential tightness. Provides a gradient.

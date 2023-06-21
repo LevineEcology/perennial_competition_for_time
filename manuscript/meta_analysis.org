@@ -1,0 +1,121 @@
+#+title: Meta Analysis
+
+* Search terms
+
+** Search 1
+("rainfall variability" OR "rainfall timing" OR "rainfall amount" OR "rainfall size" OR "rainfall seasonality" OR "precipitation variability" OR "precipitation timing" OR "precipitation amount" OR "precipitation size" OR "precipitation seasonality") AND ("plant diversity" OR "plant biodiversity" OR "plant richness" OR "plant species diversity" OR "plant species richness") AND experiment
+
+results: 39
+
+** Search 2
+(rainfall OR precipitation) AND (variability OR timing OR amount OR size OR seasonality) AND ("plant diversity" OR "plant biodiversity" OR "plant richness" OR "plant species diversity" OR "plant species richness") AND experiment
+
+results: 137
+
+** Search 3
+(rainfall OR precipitation) AND (variability OR timing OR amount OR size OR seasonality) AND plant AND (diversity OR biodiversity OR richness) AND experiment
+
+results: 468
+
+* Paper list and notes
+
+For Search 2
+
+|  # | 1st author    | year | journal                           | incl? | reason                                         |
+|----+---------------+------+-----------------------------------+-------+------------------------------------------------|
+|  1 | knapp         | 2002 | science                           | yes   |                                                |
+|  2 | oliveira      | 2022 | communications biology            | no    | dont meas. div                                 |
+|  3 | vargas-colin  | 2022 | plant ecology and diversity       | yes   |                                                |
+|  4 | miao          | 2022 | jrn. of vegetation Science        | yes   |                                                |
+|  5 | yu            | 2019 | jrn. of vegetation Science        | yes   |                                                |
+|  6 | heisler-white | 2009 | global change biology             | no    | dont meas. div                                 |
+|  7 | kemp          | 2003 | aus. jrn. of experimental ag.     | no    | dont meas. div                                 |
+|  8 | wang          | 2022 | plant ecology and diversity       | yes   |                                                |
+|  9 | price         | 2022 | nat. ecology and evolution        | yes   |                                                |
+| 10 | perez-camacho | 2012 | functional ecology                | yes   |                                                |
+| 11 | yu            | 2015 | journal of ecology                | yes   |                                                |
+| 12 | plough        | 2021 | ecosphere                         | yes   |                                                |
+| 13 | leimer        | 2014 | biogeochemistry                   | no    | dont meas. div                                 |
+| 14 | smith         | 2016 | jrn. of applied ecology           | yes   |                                                |
+| 15 | zhu           | 2019 | insect cons. and div.             | no    | not abt plants                                 |
+| 16 | moron-rios    | 2010 | eur. jrn. of soil biology         | no    | not abt plants                                 |
+| 17 | sullivan      | 2016 | global change biology             | yes   |                                                |
+| 18 | zhang         | 2021 | jrn. of vegetation science        | yes   |                                                |
+| 19 | padilla       | 2019 | oecologia                         | no    | div. not a response                            |
+| 20 | barnett       | 2016 | frontiers in plant science        | yes   | is itself a review (use to find other papers?) |
+| 21 | beier         | 2012 | ecology letters                   | no    | not an experiment                              |
+| 22 | orr           | 2014 | rangeland journal                 | no    | not an experiment                              |
+| 23 | duplicate     |      |                                   |       |                                                |
+| 24 | schuster      | 2016 | oecologia                         | no    | dont meas. div                                 |
+| 25 | harrison      | 2018 | global change biology             | yes   |                                                |
+| 26 | zhang         | 2021 | science of the tot. env.          | no    | div. not a response                            |
+| 27 | valencia      | 2018 | global change biology             | no    | div. not a response                            |
+| 28 | zhu           | 2017 | ecological entomology             | yes?  |                                                |
+| 29 | beck          | 2015 | ecological applications           | no    | dont manipulate rainfall                       |
+| 30 | cleland       | 2019 | plant ecology                     | no    | dont measure div .                             |
+| 31 | de guevara    | 2015 | acta oecologica                   | no    | dont measure div                               |
+| 32 | reynaert      | 2021 | global change biology             | yes   |                                                |
+| 33 | zavaleta      | 2003 | ecological monographs             | yes   |                                                |
+| 34 | wang          | 2021 | env. research letters             | no    | div. not a response                            |
+| 35 | fry           | 2014 | plant and soil                    | yes   |                                                |
+| 36 | batbaatar     | 2021 | journal of ecology                | yes   |                                                |
+| 37 | lewis         | 2010 | austral ecology                   | no    | dont manipulate rainfall                       |
+| 38 | ye            | 2016 | per. in plant ecol, evol and syst | no    | simulation study                               |
+| 39 | louw          | 2022 | journal of ecology                | no    | not about plants                               |
+| 40 | zhong         | 2019 | oecologia                         | yes   |                                                |
+| 41 | miller        | 2019 | journal of ecology                | yes   |                                                |
+| 42 | ren           | 2021 | environmental pollution           | no    | dont manipulate rainfall                       |
+| 43 | zang          | 2022 | frontiers in plant science        | no    | dont meas. div                                 |
+| 44 | may           | 2017 | nature communications             | no    | div. not a response                            |
+| 45 | gong          | 2020 | science of the tot. env           | no    | div. not a response                            |
+| 46 | yang          | 2019 | annals of botany                  | yes   |                                                |
+| 47 | van der merwe | 2018 | journal of arid environments      | no    | div. not a response                            |
+| 48 | crawley       | 2004 | ecology                           | no    | div. not a response                            |
+| 49 | prober        | 2013 | journal of applied ecology        | no    | not an experiment                              |
+| 50 | yang          | 2023 | oecologia                         | yes   |                                                |
+| 51 | white         | 2014 | ecology                           | yes   |                                                |
+| 52 | biondini      | 2007 | restoration ecology               | no    | dont manipulate rainfall                       |
+| 53 | wang          | 2018 | plant and soil                    | no    | div. not a response                            |
+| 54 | morgan        | 2016 | jrn. of vegetation science        | yes   |                                                |
+| 55 | louhaichi     | 2021 | sustainability                    | no    | dont manipulate rainfall                       |
+| 56 | prather       | 2020 | ecology                           | yes   |                                                |
+| 57 | benot         | 2014 | ecosystems                        | yes   |                                                |
+| 58 | putz          | 2016 | environmental earth sciences      | yes   |                                                |
+| 59 | xiao          | 2020 | frontiers in microbiology         | no    | not about plants                               |
+| 60 | jin           | 2019 | jrn. of vegetation science        | yes   |                                                |
+| 61 | sato          | 2019 | land degradation and development  | no    | dont manipulate rainfall                       |
+| 62 | flombaum      | 2017 | global change biology             | no    | div. not a response                            |
+| 63 | allen         | 2017 | environmental research letters    | no?   | is itself a review (check for studies)         |
+| 64 | pizzio        | 2016 | applied vegetation science        | no    | dont manipulate rainfall                       |
+| 65 | polley        | 2018 | functional ecology                | no    | dont manipulate rainfall                       |
+| 66 | zhang         | 2019 | functional ecology                | no    | div. not a response                            |
+| 67 | cheng         | 2021 | frontiers in plant science        | no    | div. not a response                            |
+| 68 | tracy         | 1999 | ecology                           | no    | not about plants                               |
+|    |               |      |                                   |       |                                                |
+
+
+
+
+
+
+
+
+1. Knapp et al. 2002, Science: "Rainfall variability, carbon cycling, and plant species diversity in a mesic grassland"
+   - altered timing of rainfall (removed all rainfall and added it infrequently)
+   - did not alter amount of rainfall
+   - longer interrain intervals increased diversity
+2. Smith et al. 2016, Jn of Applied Ecol.: "Rainfall variability and nitrogen addition synergistically reduce plant diversity in a restored tallgrass prairie"
+   - altered timing of rainfall (removed 50% of all rainfall and added it at end of month)
+   - did not alter the amount of rainfall
+   - variability treatment decreased diversity (also made SWC higher on average, so a bit weird. )
+3. Perez-Camacho et al. 2012, Functional Ecology: "Plant functional trait responses to interannual rainfall variability, summer drought, and seasonal grazing in Mediterranean herbaceous communities"
+   - 3 treatments: all-year irrigation, fall/spring irrigation with summer drought, control -- irrigation kept SWC above 20%
+   - did not measure diversity, just cover of perennial and annual spp
+4. Vargas-Colin et al 2022, Plant ecology and diversity: "Changes in rainfall amount and seasonality modulate taxonomic, functional, and phylogenetic diversity in a gypsophilous plant community in the Chihuahuan Desert"
+   - did not alter rainfall timing (in the way we need)
+   - did alter rainfall amount
+   - increased rainfall amount led to increased diversity.
+5. NA
+6. Gherardi and Sala 2015
+7. Copeland et al 2016 Ecol. Mon.
+8. Sullivan et al. 2016 Global Change Biology "Grassland responses to increased rainfall depend on the timescale of forcing"
