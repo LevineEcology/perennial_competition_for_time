@@ -159,23 +159,6 @@ function check_eq(bd, tol = 1e-15)
 end;
 
 """
-    plot_eq_agreement(data::DataFrame, save::Bool = false, filename::String = "")
-
-TBW
-"""
-function plot_eq_agreement(data::DataFrame, save::Bool = false, filename::String = "")
-   p = plot(framestyle = :box, grid = false,
-            legend = :none, ylab = "Equilibrium density (simulated)", xlab = "Equilibrium density (predicted)",
-            ylim = [0, maximum(data.eq_sim)], xlim = [0, maximum(data.eq_an)])
-   p = Plots.abline!(1,0)
-   p = plot!(data.eq_an, data.eq_sim, seriestype = "scatter")
-   if save
-       savefig(filename)
-   end
-   return p
-end
-
-"""
     check_eq_agreement(iter::Int64, Nspp::Int64, Nyr::Int64 = 2000,
                             W0::Float64 = 0.6)
 
@@ -195,3 +178,20 @@ function check_eq_agreement(iter::Int64, Nspp::Int64, Nyr::Int64 = 2000, θ_fc::
     end
     return DataFrame(eq_sim = eq_sim, eq_an = eq_an)
 end;
+
+"""
+    plot_eq_agreement(data::DataFrame, save::Bool = false, filename::String = "")
+
+TBW
+"""
+function plot_eq_agreement(data::DataFrame, save::Bool = false, filename::String = "")
+   p = plot(framestyle = :box, grid = false,
+            legend = :none, ylab = "Equilibrium density (simulated)", xlab = "Equilibrium density (predicted)",
+            ylim = [0, maximum(data.eq_sim)], xlim = [0, maximum(data.eq_an)])
+   p = Plots.abline!(1,0)
+   p = plot!(data.eq_an, data.eq_sim, seriestype = "scatter")
+   if save
+       savefig(filename)
+   end
+   return p
+end

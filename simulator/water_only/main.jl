@@ -8,12 +8,12 @@
 ##---------------------------------------------------------------
 ## 0. define includes and parameters
 ##---------------------------------------------------------------
-##
+
 
 using Plots, QuadGK, DataFrames, Distributions,
     SpecialFunctions, NLsolve, AutoPreallocation,
     Profile, PProf, PlotThemes, CSV, GeoArrays, Random, Debugger,
-    ForwardDiff, Polylogarithms
+    ForwardDiff, Polylogarithms, ProgressBars
 
 ## simulation parameters
 Nspp::Int64 = 10; Nyr::Int64 = 1000; Ninit::Float64 = 1.0;
@@ -28,36 +28,28 @@ W₀::Float64 = 0.4 ## initial water content (default)
 θ_fc::Float64 = 0.4 ## field capacity
 
 ## include function headers
-include("simulation_functions_2.jl")
+include("simulation_functions.jl")
 include("eq_functions.jl")
 include("meta_functions.jl")
 
 ## set plotting variables
-theme(:dark)
+theme(:default)
 my_cgrad = cgrad(:roma)
 
 ##---------------------------------------------------------------
 ## 0. simulator checks
 ##---------------------------------------------------------------
-p = calc_g(spp_data[2,:τ], spp_data[2, :C₁], spp_data[2, :C₂], 1.0/10)
-
-(1 / (F * (1/P)^(b+1) * sigma(μ*(1/P), b)))^(1/b)
-
-
-(1/(exp(μ * 0.1) - 1)) * (sigma(μ*0.1, b) * F)^((b-1)/b) / (E * sigma(μ*0.1, b-1))
-
-(exp(μ*(1/8))/(exp(μ*1/8) - 1))
-
-μ = 0.15
+μ = 0.5
 F = 10.0
+P = 10
+Nyr = 400
 
-P = 9
 spp_data = generate_spp_data(5, 0.6, 1.0 / P, F, μ, 2.5, 0.05, 0.0)
-out = sim_water_only(spp_data, 600, 5, Ninit, μ, F, P, 16.0, θ_fc)
+@time out = sim_water_only(spp_data, Nyr, 5, Ninit, μ, F, P, 16.0, θ_fc)
 
 y = calc_eqN(spp_data, F, E, 0.4, θ_fc, μ, 1.0 / P, P, false)
-Vector(out[2][400*P,2:ncol(out[2])]) ./ y.eqN
-plot(Vector(out[2][400*10,2:ncol(out[2])]), y.eqN, seriestype = :scatter)
+Vector(out[2][Nyr*P,2:ncol(out[2])]) ./ y.eqN
+plot(Vector(out[2][Nyr*P,2:ncol(out[2])]), y.eqN, seriestype = :scatter)
 plot_simulation_dynamics(out)
 
 ##---------------------------------------------------------------
@@ -73,9 +65,10 @@ plot_eq_agreement(out, true, "figures/sim_vs_an.pdf")
 ## 2. For constant MAP and storm frequencies
 ##---------------------------------------------------------------
 
-multi_1 = multi_eq_total_timing(30, 20, 0.5,
-                                0.3*P, 0.8*P, 6, 4, 50, 30,
-                                F, μ)
+μ = 0.2
+multi_1 = multi_eq(30, 20, 0.3,
+                   0.3*P, 0.8*P, 6, 4, 50, 30,
+                   F, μ)
 summary_1 = summarize_multi_eq(multi_1)
 sub = summary_1[summary_1.var .== "n",:]
 
@@ -105,11 +98,18 @@ plot(sub.T, sub.mean, group = sub.total, line_z = sub.total,
 ##---------------------------------------------------------------
 ## 3. For variable MAP and storm frequencies
 ##---------------------------------------------------------------
+P = 10
+μ = 0.5
+Nyr = 200
+spp_data = generate_spp_data(5, 0.6, 1.0 / P, F, μ, 2.5, 0.05, 0.0)
 
+out = sim_water_only(spp_data, Nyr, 5, Ninit, μ, F, P, 16.0, θ_fc)
+plot_simulation_dynamics(out)
 
-
-
-
+rr = generate_rainfall_regime(Nyr, P, 2.5, 4.0, 0.5)
+out = sim_water_only_stochastic(spp_data, nrow(spp_data), 1.0, rr,
+                                0.4, μ, F)
+plot_simulation_dynamics_stochastic(out, rr)
 
 
 ##---------------------------------------------------------------
