@@ -9,7 +9,6 @@
 ## 0. define includes and parameters
 ##---------------------------------------------------------------
 
-
 using Plots, QuadGK, DataFrames, Distributions,
     SpecialFunctions, NLsolve, AutoPreallocation,
     Profile, PProf, PlotThemes, CSV, GeoArrays, Random, Debugger,
@@ -66,7 +65,7 @@ plot_eq_agreement(out, true, "figures/sim_vs_an.pdf")
 ##---------------------------------------------------------------
 
 μ = 0.2
-multi_1 = multi_eq(30, 20, 0.3,
+multi_1 = multi_eq(30, 20, 0.4,
                    0.3*P, 0.8*P, 6, 4, 50, 30,
                    F, μ)
 summary_1 = summarize_multi_eq(multi_1)
@@ -100,106 +99,58 @@ plot(sub.T, sub.mean, group = sub.total, line_z = sub.total,
 ##---------------------------------------------------------------
 P = 10
 μ = 0.5
-Nyr = 200
-spp_data = generate_spp_data(5, 0.6, 1.0 / P, F, μ, 2.5, 0.05, 0.0)
+Nyr = 100
 
-out = sim_water_only(spp_data, Nyr, 5, Ninit, μ, F, P, 16.0, θ_fc)
+spp_data = generate_spp_data(10, 0.6, 1.0 / P, F, μ, 2.5, 0.05, 0.0)
+
+out = sim_water_only(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, 16.0, θ_fc)
 plot_simulation_dynamics(out)
 
-rr = generate_rainfall_regime(Nyr, P, 2.5, 4.0, 0.5)
+rr = generate_rainfall_regime(Nyr, P, 2.5, 0.5, 0.5)
+out = sim_water_only_stochastic(spp_data, nrow(spp_data), 1.0, rr,
+                                0.4, μ, F)
+plot_simulation_dynamics_stochastic(out, rr)
+
+rr = generate_rainfall_regime(Nyr, P, 2.5, 0.5, 0.5, true)
 out = sim_water_only_stochastic(spp_data, nrow(spp_data), 1.0, rr,
                                 0.4, μ, F)
 plot_simulation_dynamics_stochastic(out, rr)
 
 
+la = Matrix(out[1])
+mean(sum(la[size(la)[1]-(0.1*size(la)[1]):size(la)[1],2:size(la)[2]], dims = 2))
+
+transpiration = (out[6] - out[5]) ./ rr[2]
+l = length(transpiration)
+mean(transpiration[length(transpiration)-Int(round(0.1*length(transpiration))):length(transpiration)])
+
+length(transpiration)
 ##---------------------------------------------------------------
-## 2. calculate equilibrium densities under constant, initial
-##    water contents and interrain interval lengths
+## multi
 ##---------------------------------------------------------------
 
-## First for dependence on T with 4 values of W₀
-@time results = multi_eq_constant_water(20, 20, 0.4, 0.2, 0.4, 2, 0.1, 20.0, 10,
-                                        0.5, 0.01);
-summary = summarize_multi_eq(results)
+var_t = multi_eq_variable_total(20, 10, 400, 0.6, 0.015, 8.0, 12,
+                              0.0, 4.5, 5, 10, 10.0, 10.0, 0.5, false)
+CSV.write("../../data/var_t_water_only.csv", var_t)
+summary_var_t = summarize_multi_eq_variable_total(var_t)
 
-## plot
-plot_multi_eq(summary, "n", :T, results[4])
-plot_multi_eq(summary, "n", :T, results[4], true, "figures/eq_nfeas_T.pdf")
-plot_multi_eq(summary, "min", :T, results[4],true, "figures/eq_minfeas_T.pdf")
-plot_multi_eq(summary, "avg", :T, results[4], true, "figures/eq_avgfeas_T.pdf")
+sub = summary_var_t[summary_var_t.var .== "n",:]
+plot(sub.totalmean, sub.mean, group = sub.totalsd, line_z = sub.totalsd,
+     seriescolor = my_cgrad,
+     seriestype = :line,
+     xlim = [minimum(sub.totalmean), maximum(sub.totalmean)],
+     ylim = [0.0, 20], frame = :box, grid = false, linewidth = 3, fillalpha = 0.3,
+     colorbar = true, colorbar_title = "mean annual precip.")
 
-## Then for dependence on W₀ with 4 values of T
-@time results = multi_eq_constant_water(30, 50, 0.4, 0.1, 0.6, 18, 20.0, 140.0, 4);
-summary = summarize_multi_eq(results)
+var_p = multi_eq_variable_P(20, 10, 400, 0.6, 2, 40, 12,
+                            0.5, 10.0, 5, 4.0, 1.5, 10.0, 0.5, false)
+CSV.write("../../data/var_p_water_only.csv", var_p)
+summary_var_p = summarize_multi_eq_variable_total(var_p)
 
-plot_multi_eq(summary, "n", :W₀, results[4], true, "figures/eq_nfeas_W0.pdf")
-plot_multi_eq(summary, "min", :W₀, results[4], true, "figures/eq_minfeas_W0.pdf")
-plot_multi_eq(summary, "avg", :W₀, results[4], true, "figures/eq_avgfeas_W0.pdf")
-
-##---------------------------------------------------------------
-## 3. simulate population dynamics under variable W₀ and T
-##---------------------------------------------------------------
-spp_data = generate_spp_data(10, 0.7, 100.0, 100.0, 0.1, 2.5, 0.4,
-                             0.0)
-
-plot(spp_data.τ, spp_data.Wᵢ, seriestype = :scatter)
-
-out1 = sim_water_only(spp_data, 3000, nrow(spp_data), 1.0, 0.1, 0.6, 100.0)
-out2 = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, true, false,
-                                0.6, 0.2, 100.0)
-
-plot_simulation_dynamics(out1)
-savefig("figures/simulation_novar.pdf")
-plot_simulation_dynamics(out2)
-savefig("figures/simulation_var.pdf")
-
-out3 = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true,
-                                0.6, 0.0, 100.0, 30.0)
-
-plot_simulation_dynamics(out3)
-
-out = sim_water_only_stochastic(spp_data, 3000, nrow(spp_data), 1.0, false, true,
-                                0.6, 0.1, 40.0, 20.0)
-
-plot_simulation_dynamics(out)
-savefig("figures/simulation_varT.pdf")
-
-## simulations done on cluster for speed. load results CSV from file
-variable_results = CSV.read("simulator_runs.csv", DataFrame)
-
-unique(variable_results.Tmean)
-p_data = variable_results[variable_results.Tmean .== 110.0, :]
-p_data = p_data[p_data.Tsd .== 0.0, :]
-p_data = p_data[p_data.var .== "n", :]
-
-plot(p_data.W₀mean, p_data.W₀sd, p_data.mean,
-             st = :surface,
-             #surfacecolor = subdata[:,groupvar],
-             seriescolor = my_cgrad,
-             xflip = true,
-             legend = :topleft, frame = :box,  linewidth = 3, fillalpha = 0.7, colorbar = false,
-              zlab = "# species persisting")
-
-unique(variable_results.Tmean)
-p_data = variable_results[variable_results.W₀mean .== 0.2, :]
-p_data = p_data[p_data.W₀sd .== 0.0, :]
-p_data = p_data[p_data.var .== "n", :]
-
-plot(p_data.Tmean, p_data.Tsd, p_data.mean,
-             st = :surface,
-             #surfacecolor = subdata[:,groupvar],
-             seriescolor = my_cgrad,
-             xflip = true,
-             legend = :topleft, frame = :box,  linewidth = 3, fillalpha = 0.7, colorbar = false,
-              zlab = "# species persisting")
-
-plot_multi_eq_variable(variable_results[variable_results.Tmean .== 50.0, :], "n", :W₀, 30, true, "figures/eq_nfeas_W0_var.pdf")
-plot_multi_eq_variable(variable_results, "n", :T, 30, true, "figures/eq_nfeas_T_var.pdf")
-
-plot_multi_eq_variable(variable_results, "min", :W₀, 30, true, "figures/eq_minfeas_W0_var.pdf")
-plot_multi_eq_variable(variable_results, "min", :T, 30, true, "figures/eq_minfeas_T_var.pdf")
-
-plot_multi_eq_variable(variable_results, "avg", :W₀, 30, true, "figures/eq_avgfeas_W0_var.pdf")
-plot_multi_eq_variable(variable_results, "avg", :T, 30, true, "figures/eq_avgfeas_T_var.pdf")
-
-data = variable_results; yvar = "avg"; xvar = "T"
+sub = summary_var_p[summary_var_p.var .== "n",:]
+plot(sub.totalmean, sub.mean, group = sub.totalsd, line_z = sub.totalsd,
+     seriescolor = my_cgrad,
+     seriestype = :line,
+     xlim = [minimum(sub.totalmean), maximum(sub.totalmean)],
+     ylim = [0.0, 20], frame = :box, grid = false, linewidth = 3, fillalpha = 0.3,
+     colorbar = true, colorbar_title = "mean annual precip.")

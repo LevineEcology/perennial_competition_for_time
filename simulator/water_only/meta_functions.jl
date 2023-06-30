@@ -34,9 +34,7 @@ function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     leaf_area_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     transpir_results = Array{Float64}(undef, Niter, size(params)[1])
-    ##Threads.@threads
-    for i in 1:size(params)[1]
-        println(i)
+    Threads.@threads for i in 1:size(params)[1]
         sub_results = Vector{Float64}(undef, Nspp*Niter)
         leaf_area_sub = Vector{Float64}(undef, Nspp*Niter)
         for j in 1:Niter
@@ -48,7 +46,7 @@ function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
             if sum(eqN .> 0.0) == 0
                 transpir_results[j,i] = 0
             else
-                transpir_results[j,i] = (params[i,1] - minimum(spp_data[eqN .> 0.0, :Wᵢ])) * (365 / params[i,2])
+                transpir_results[j,i] = (params[i,1] - minimum(spp_data[eqN .> 0.0, :Wᵢ])) * params[i, 2]
             end
         end
         full_results[:,i] = sub_results
@@ -176,130 +174,116 @@ end;
 ## Stochastic
 ##---------------------------------------------------------------
 
-"""
-    multi_eq_variable_water(Nspp::Int64 = 10, Niter::Int64 = 10,
-                                 minW₀::Float64 = 0.1, maxW₀::Float64 = 0.6, lengthW₀::Int64 = 10,
-                                 minT::Float64 = 1.0, maxT::Float64 = 100.0, lengthT::Int64 = 10)
-                                 minW₀::Float64 = 0.1, maxW₀::Float64 = 0.6, lengthW₀::Int64 = 10,
-                                 minT::Float64 = 1.0, maxT::Float64 = 100.0, lengthT::Int64 = 10)
-
-TBW
-"""
-
-function multi_eq_variable_total(Nspp::Int64 = 10, Niter::Int64 = 10,
-                                 Nyr_sim = 4000,
-                                 mintotal::Float64 = 0.1, maxtotal::Float64 = 0.6,
-                                 lengthtotal::Int64 = 10,
-                                 minW₀sd::Float64 = 0.0, maxW₀sd::Float64 = 0.2,
-                                 lengthW₀sd::Int64 = 10,
-                                 minTmean::Float64 = 1.0, maxTmean::Float64 = 100.0,
-                                 lengthTmean::Int64 = 10,
-                                 minTsd::Float64 = 0.0, maxTsd::Float64 = 30.0,
-                                 lengthTsd::Int64 = 10,
-                                 θₘ = 0.4, F::Float64 = 10.0, μ::Float64 = 0.001)
-
-
-    totallist = collect(range(mintotal, stop = maxtotal, length = lengthtotal));
-    W₀sd_list = collect(range(minW₀sd, stop = maxW₀sd, length = lengthW₀sd));
-    Tmean_list = collect(range(minTmean, stop = maxTmean, length = lengthTmean));
-    Tsd_list = collect(range(minTsd, stop = maxTsd, length = lengthTsd));
-    x = collect(Base.product(Tsd_list, Tmean_list, total_list))
-    x = reshape(x, (50, 15))
-    for i in 1:length(x)
-        x[i] = reverse(x[i])
-    end
-
-    sd = []
-    for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.3, 40.0, F, μ, 2.5, 0.08, 0.0, 0.001, 0.0008))
-    end
-
-    full_results = Array{Float64}(undef, Nspp*Niter, length(params))
-    Threads.@threads for i in 1:length(params)
-        μ_adj = adj_μ(μ, params[i][3])
-        sub_results = Vector{Float64}(undef, Nspp*Niter)
-        sim = Vector{Float64}(undef, Nspp)
-        for j in 1:Niter
-            spp_data = sd[j]
-            sim .= Vector(sim_water_only_stochastic(spp_data, Nyr_sim, nrow(spp_data), 1.0, true, true,
-                                                    params[i][1], params[i][2], params[i][3],
-                                                    θₘ, μ_adj, F)[2][Nyr_sim, 2:Nspp+1])
-            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] .= replace(x -> isless(x, 1e-10) ? 0 : x, sim)
-        end
-        full_results[:,i] = sub_results
-    end
-
-    [full_results, Niter, params, Nspp]
-
-end
-
-
-
-function multi_eq_variable_water(Nspp::Int64 = 10, Niter::Int64 = 10,
-                                 Nyr_sim = 4000,
-                                 mintotalmean::Float64 = 0.1, maxtotalmean::Float64 = 0.6,
+function multi_eq_variable_total(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
+                                 mintotalmean::Float64 = 0.1 * 15, maxtotalmean::Float64 = 0.6 * 15,
                                  lengthtotalmean::Int64 = 10,
-                                 minW₀sd::Float64 = 0.0, maxW₀sd::Float64 = 0.2,
-                                 lengthW₀sd::Int64 = 10,
-                                 minTmean::Float64 = 1.0, maxTmean::Float64 = 100.0,
-                                 lengthTmean::Int64 = 10,
-                                 minTsd::Float64 = 0.0, maxTsd::Float64 = 30.0,
-                                 lengthTsd::Int64 = 10,
-                                 θₘ = 0.4, F::Float64 = 10.0, μ::Float64 = 0.001)
+                                 mintotalsd::Float64 = 0.0, maxtotalsd::Float64 = 1.5, lengthtotalsd::Int64 = 5,
+                                 Pmean::Int64 = 10, Pdisp::Float64 = 10.0,
+                                 F::Float64 = 10.0, μ::Float64 = 0.03, cluster::Bool = false)
 
-    W₀mean_list = collect(range(minW₀mean, stop = maxW₀mean, length = lengthW₀mean));
-    W₀sd_list = collect(range(minW₀sd, stop = maxW₀sd, length = lengthW₀sd));
-    Tmean_list = collect(range(minTmean, stop = maxTmean, length = lengthTmean));
-    Tsd_list = collect(range(minTsd, stop = maxTsd, length = lengthTsd));
-    x = collect(Base.product(Tsd_list, Tmean_list, [0.0], round(mean(W₀mean_list), digits = 3)))
-    for i in 1:length(x)
-        x[i] = reverse(x[i])
-    end
-    params = vcat(collect(Base.product(W₀mean_list, W₀sd_list, mean(Tmean_list), [0.0])), x)
+    totalmean_list = collect(range(mintotalmean, stop = maxtotalmean, length = lengthtotalmean));
+    totalsd_list = collect(range(mintotalsd, stop = maxtotalsd, length = lengthtotalsd));
+    pars = hcat(repeat(totalmean_list, inner = length(totalsd_list)),
+                repeat(totalsd_list, outer = length(totalmean_list)));
 
     sd = []
     for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.3, 40.0, F, μ, 2.5, 0.08, 0.0, 0.001, 0.0008))
+        sd = push!(sd, generate_spp_data(Nspp, 0.6, 1.0 / Pmean, F, μ, 2.5, 0.05, 0.0))
     end
 
-    full_results = Array{Float64}(undef, Nspp*Niter, length(params))
-    Threads.@threads for i in 1:length(params)
-        μ_adj = adj_μ(μ, params[i][3])
+    full_results = Array{Float64}(undef, Nspp*Niter, size(pars)[1])
+    leaf_area_results = Array{Float64}(undef, Niter, size(pars)[1])
+    transpir_results = Array{Float64}(undef, Niter, size(pars)[1])
+    Threads.@threads for i in ProgressBar(1:size(pars)[1])
+        rr = generate_rainfall_regime(Nyr, Pmean, Pdisp, pars[i, 1], pars[i, 2])
+        mort = mortality_table(length(rr[2]), μ, rr[2])
         sub_results = Vector{Float64}(undef, Nspp*Niter)
-        sim = Vector{Float64}(undef, Nspp)
         for j in 1:Niter
             spp_data = sd[j]
-            sim .= Vector(sim_water_only_stochastic(spp_data, Nyr_sim, nrow(spp_data), 1.0, false, true,
-                                                    params[i][1], params[i][2], params[i][3], params[i][4],
-                                                    θₘ, μ_adj, F)[2][Nyr_sim, 2:Nspp+1])
-            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] .= replace(x -> isless(x, 1e-10) ? 0 : x, sim)
+            result = sim_water_only_stochastic(spp_data, Nspp, 1.0, rr, θ_fc, μ,
+                                                   F, mort, false)
+            ## equilibrium population density
+            eqN = Matrix(result[2])[length(rr[2]), 2:Nspp+1]
+            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] .= eqN
+
+            ## average leaf area
+            la = Matrix(result[1])
+            leaf_area_results[j,i] = mean(sum(la[size(la)[1]-
+                Int(round(0.1*size(la)[1])):size(la)[1],2:size(la)[2]], dims = 2))
+
+            ## average annual transpiration
+            transpiration = (result[6] - result[5]) ./ rr[2]
+            l = length(transpiration)
+            transpiration_results = mean(transpiration[length(transpiration)-
+                Int(round(0.1*length(transpiration))):length(transpiration)])
+
         end
         full_results[:,i] = sub_results
     end
 
-    summarize_multi_eq_variable([full_results, Niter, params, Nspp])
+    return [full_results, Niter, pars, Nspp, leaf_area_results, transpiration_results]
 
 end
+
+function multi_eq_variable_P(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
+                             minPmean::Int64 = 0.1 * 15, maxPmean::Int64 = 0.6 * 15,
+                             lengthPmean::Int64 = 10,
+                             minPdisp::Float64 = 0.0, maxPdisp::Float64 = 1.5, lengthPdisp::Int64 = 5,
+                             totalmean::Float64 = 4.0, totalsd::Float64 = 1.5,
+                             F::Float64 = 10.0, μ::Float64 = 0.03, cluster::Bool = false)
+
+    Pmean_list = collect(range(minPmean, stop = maxPmean, length = lengthPmean));
+    Pdisp_list = collect(range(minPdisp, stop = maxPdisp, length = lengthPdisp));
+    pars = hcat(repeat(Pmean_list, inner = length(Pdisp_list)),
+                repeat(Pdisp_list, outer = length(Pmean_list)));
+
+    sd = []
+    for i in 1:Niter
+        sd = push!(sd, generate_spp_data(Nspp, 0.6, 1.0 / mean(Pmean_list), F, μ, 2.5, 0.05, 0.0))
+    end
+
+    full_results = Array{Float64}(undef, Nspp*Niter, size(pars)[1])
+    leaf_area_results = Array{Float64}(undef, Nspp*Niter, size(pars)[1])
+    transpir_results = Array{Float64}(undef, Niter, size(pars)[1])
+    Threads.@threads for i in ProgressBar(1:size(pars)[1])
+        rr = generate_rainfall_regime(Nyr, Int(round(pars[i, 1])), pars[i, 2], totalmean, totalsd)
+        mort = mortality_table(length(rr[2]), μ, rr[2])
+        sub_results = Vector{Float64}(undef, Nspp*Niter)
+        leaf_area_sub = Vector{Float64}(undef, Nspp*Niter)
+        for j in 1:Niter
+            spp_data = sd[j]
+            eqN = Matrix(sim_water_only_stochastic(spp_data, Nspp, 1.0, rr, θ_fc,
+                                                   μ, F, mort, false)[2])[length(rr[2]), 2:Nspp+1]
+            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] .= eqN
+        end
+        full_results[:,i] = sub_results
+    end
+
+    return [full_results, Niter, pars, Nspp]
+
+end
+
 
 
 function summarize_multi_eq_variable_total(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
-
-    summary = DataFrame(W₀mean = repeat([multi_eq_output[3][i][1] for i = 1:Npar], outer = 4),
-                        Tmean = repeat([multi_eq_output[3][i][3] for i = 1:Npar], outer = 4),
-                        Tsd = repeat([multi_eq_output[3][i][4] for i = 1:Npar], outer = 4),
+    summary = DataFrame(totalmean = repeat(multi_eq_output[3][:,1], outer = 4),
+                        totalsd = repeat(multi_eq_output[3][:,2], outer = 4),
                         var = repeat(["n", "min", "max", "avg"], inner = Npar),
                         mean = Vector{Float64}(undef, Npar*4),
                         sd = Vector{Float64}(undef, Npar*4))
+
+    summary.totalmean = round.(summary.totalmean .* 100)
+    summary.totalsd = round.(summary.totalsd .* 100)
 
     nfeas_temp = Vector{Float64}(undef, Niter); maxfeas_temp = Vector{Float64}(undef, Niter);
     minfeas_temp = Vector{Float64}(undef, Niter); avgfeas_temp = Vector{Float64}(undef, Niter);
 
     for i in 1:size(multi_eq_output[1])[2]
         for j in 1:Niter
-            tmp = findall(multi_eq_output[1][[(Nspp*(j-1))+1:1:Nspp*j;],i] .> 0.0)
+            tmp = findall(multi_eq_output[1][[(Nspp*(j-1))+1:1:Nspp*j;],i] .> 1e-3)
             maxfeas_temp[j] = maximum(tmp, init = 0)
             minfeas_temp[j] = minimum(tmp, init = 31)
             avgfeas_temp[j] = mean(tmp)
@@ -317,40 +301,6 @@ end;
 
 
 
-
-function summarize_multi_eq_variable(multi_eq_output::Vector{Any})
-
-    ## initialize data
-    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
-
-    summary = DataFrame(W₀mean = repeat([multi_eq_output[3][i][1] for i = 1:Npar], outer = 4),
-                        W₀sd = repeat([multi_eq_output[3][i][2] for i = 1:Npar], outer = 4),
-                        Tmean = repeat([multi_eq_output[3][i][3] for i = 1:Npar], outer = 4),
-                        Tsd = repeat([multi_eq_output[3][i][4] for i = 1:Npar], outer = 4),
-                        var = repeat(["n", "min", "max", "avg"], inner = Npar),
-                        mean = Vector{Float64}(undef, Npar*4),
-                        sd = Vector{Float64}(undef, Npar*4))
-
-    nfeas_temp = Vector{Float64}(undef, Niter); maxfeas_temp = Vector{Float64}(undef, Niter);
-    minfeas_temp = Vector{Float64}(undef, Niter); avgfeas_temp = Vector{Float64}(undef, Niter);
-
-    for i in 1:size(multi_eq_output[1])[2]
-        for j in 1:Niter
-            tmp = findall(multi_eq_output[1][[(Nspp*(j-1))+1:1:Nspp*j;],i] .> 0.0)
-            maxfeas_temp[j] = maximum(tmp, init = 0)
-            minfeas_temp[j] = minimum(tmp, init = 31)
-            avgfeas_temp[j] = mean(tmp)
-            nfeas_temp[j] = length(tmp)
-        end
-        summary[i, :mean] = mean(nfeas_temp); summary[i, :sd] = std(nfeas_temp)
-        summary[Npar+i, :mean] = mean(minfeas_temp); summary[Npar+i, :sd] = std(minfeas_temp)
-        summary[Npar*2+i, :mean] = mean(maxfeas_temp); summary[Npar*2+i, :sd] = std(maxfeas_temp)
-        summary[Npar*3+i, :mean] = mean(avgfeas_temp); summary[Npar*3+i, :sd] = std(avgfeas_temp)
-    end
-
-    return summary
-
-end;
 
 function plot_multi_eq_variable(data::DataFrame, yvar::String = "n", xvar::Symbol = :W₀,
                                 Nspp::Int = 10, save::Bool = true, filename = "")

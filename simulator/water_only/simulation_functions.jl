@@ -143,23 +143,25 @@ function iterate_water_only_sim(Nyr::Int64, spp_data::DataFrame,
                                 n_data::DataFrame, n_dynamics::DataFrame,
                                 r_data::DataFrame, w_data::Vector{Float64},
                                 g::Vector{Float64}, t::Vector{Float64},
-                                v::Vector{Float64}, Nspp::Int64,
+                                v::Vector{Float64}, Nspp::Int64, mt::Matrix{Float64},
                                 μ::Float64 = 0.1, F::Float64 = 10.0,
                                 W₀vec::Vector{Float64} = repeat([0.6], Nyr),
                                 Tvec::Vector{Float64} = repeat([40.0], inner = Nyr),
-                                θ_fc::Float64 = 0.4)
-
-    mt = mortality_table(Nyr, μ, Tvec)
+                                θ_fc::Float64 = 0.4, pb::Bool = true)
 
     ## initialize soil water content at field capacity
     w = θ_fc
+    w_in_data = copy(w_data)
 
     ## begin iterating
-    for yr in ProgressBar(1:Nyr)
+    if pb
+        prog = ProgressBar(total = Nyr)
+    end
+    for yr in 1:Nyr
 
         ## calculate initial water content
         w = minimum([w + W₀vec[yr], θ_fc])
-        w_data[yr] = w
+        w_in_data[yr] = w
 
         ## calculate growth time for each species
         if any(spp_data.Wᵢ .< w)
@@ -181,6 +183,7 @@ function iterate_water_only_sim(Nyr::Int64, spp_data::DataFrame,
 
         ## recalculate soil water content
         w = maximum([calc_w(w, t, Tvec[yr], biomass_data, n_data, v, spp_data.Wᵢ), 0.0])
+        w_data[yr] = w
 
         v = ΣB(biomass_data, n_data, v)
         biomass_dynamics[yr, [2:1:Nspp+1;]] = v
@@ -192,9 +195,16 @@ function iterate_water_only_sim(Nyr::Int64, spp_data::DataFrame,
         end
         Σn!(n_data, n_dynamics, yr)
 
+        ## extinction cutoff
+        r_data[:,Matrix(n_dynamics)[yr,:] .< 1e-3] .= 0.0
+
+        if pb
+            update(prog)
+        end
+
     end
 
-    return [biomass_dynamics, n_dynamics, n_data, r_data, w_data]
+    return [biomass_dynamics, n_dynamics, n_data, r_data, w_data, w_in_data]
 
 end;
 
@@ -202,7 +212,8 @@ end;
 ## simulate water only
 function sim_water_only(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
                         Ninit::Float64, μ::Float64 = 0.15, F::Float64 = 10.0,
-                        P::Int64 = 40, mean_p::Float64 = 16.0, θ_fc = 0.4)
+                        P::Int64 = 40, mean_p::Float64 = 16.0, θ_fc = 0.4,
+                        mt::Matrix{Float64} = zeros(1,1), pb::Bool = true)
 
     Nyr = Nyr * P
 
@@ -242,26 +253,48 @@ function sim_water_only(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
     T = 1.0 / P
     W₀ = mean_p / P
 
+    if mt == zeros(1,1)
+        mt = mortality_table(Nyr, μ, repeat([T], inner = Nyr))
+    end
+
     iterate_water_only_sim(Nyr, spp_data,
                            biomass_data, biomass_dynamics,
                            n_data, n_dynamics,
                            r_data, w_data,
-                           g, t, v, Nspp, μ, F,
+                           g, t, v, Nspp, mt, μ, F,
                            repeat([minimum([θ_fc, W₀])], inner = Nyr),
-                           repeat([T], inner = Nyr))
+                           repeat([T], inner = Nyr), θ_fc,
+                           pb)
 
 end;
 
 ##---------------------------------------------------------------
 ## STOCHASTIC SIMULATIONS
 ##---------------------------------------------------------------
+##
 
 ## generate a year's worth of interval lengths given P
-function generate_intervals(P)
-    rand(Dirichlet(repeat([1/P], P)), 1)
+function generate_intervals(Pmean, cluster = false)
+    inter = rand(Exponential(1/Pmean), Pmean)
+    sum(inter)
+    if sum(inter) > 1.0
+        rs = 0.0
+        for i in 1:length(inter)
+            rs = rs + inter[i]
+            if rs > 1.0
+                inter = inter[1:i]
+                inter[i] = 1.0 - sum(inter[1:i-1])
+            end
+            break
+        end
+    end
+    if cluster
+        sort!(vec(inter))
+    end
+    return inter
 end
 
-function generate_rainfall_regime(Nyr::Int64, Pmean::Int64, Pdisp::Float64, map_mean::Float64, map_var::Float64)
+function generate_rainfall_regime(Nyr::Int64, Pmean::Int64, Pdisp::Float64, map_mean::Float64, map_var::Float64, cluster::Bool = false)
 
     var = Pmean + 1 / Pdisp * Pmean ^ 2
     p = (var - Pmean) / var
@@ -270,27 +303,32 @@ function generate_rainfall_regime(Nyr::Int64, Pmean::Int64, Pdisp::Float64, map_
 
     precip_list = rand(Normal(map_mean, map_var), Nyr)
 
-    Tlist = Float64[]
+    Preal = Float64[]
+    Tlist = Int64[]
     for yr in 1:Nyr
-        Tlist = vcat(Tlist, generate_intervals(Plist[yr]))
+        new_int = generate_intervals(Plist[yr])
+        Tlist = vcat(Tlist, new_int)
+        Preal = vcat(Preal, length(new_int))
     end
     Tlist
+    Preal = Int.(Preal)
 
     W₀list = Vector{Float64}(undef, length(Tlist))
     i = 1
     for yr in 1:Nyr
-        W₀list[i:i+Plist[yr]-1] .= Tlist[i:i+Plist[yr]-1] .* precip_list[yr]
-        i = i+Plist[yr]
+        W₀list[i:i+Preal[yr]-1] .= Tlist[i:i+Preal[yr]-1] .* precip_list[yr]
+        i = i+Preal[yr]
     end
 
-    return [W₀list, Tlist, Plist]
+    return [W₀list, Tlist, Preal]
 
 end
 
 ## simulate water only
 function sim_water_only_stochastic(spp_data::DataFrame, Nspp::Int64,
-                                   Ninit::Float64, rainfall_regime::Vector{Array},
-                                   θ_fc = 0.4, μ::Float64 = 0.05, F::Float64 = 10.0)
+                                   Ninit::Float64, rainfall_regime::Vector{Vector{Float64}},
+                                   θ_fc::Float64 = 0.4, μ::Float64 = 0.05, F::Float64 = 10.0,
+                                   mt::Matrix{Float64} = zeros(1,1), pb::Bool = true)
 
     Nyr = length(rainfall_regime[1])
 
@@ -327,14 +365,19 @@ function sim_water_only_stochastic(spp_data::DataFrame, Nspp::Int64,
 
     w_data = Vector{Float64}(undef, Nyr);
 
-    W₀vec = copy(rainfall_regime[2])
+    W₀vec = copy(rainfall_regime[1])
     W₀vec[W₀vec .> θ_fc] .= θ_fc
+
+    if mt == zeros(1,1)
+        mt = mortality_table(Nyr, μ, rainfall_regime[2])
+    end
 
     iterate_water_only_sim(Nyr, spp_data,
                            biomass_data, biomass_dynamics,
                            n_data, n_dynamics, r_data, w_data,
-                           g, t, v, Nspp, μ, F,
-                           vec(W₀vec), vec(rainfall_regime[2]))
+                           g, t, v, Nspp, mt, μ, F,
+                           vec(W₀vec), vec(rainfall_regime[2]), θ_fc,
+                           pb)
 
 end;
 
@@ -361,16 +404,9 @@ function plot_rainfall_regime(rainfall_regime)
 end
 
 
-## maybe have several distribution types:
-## 1. regularly spaced (standard)
-## 2. random spacing (poisson rain)
-## 3. clustered spacing
-
-
 ##---------------------------------------------------------------
 ## PLOTTING UTILITY
 ##---------------------------------------------------------------
-
 
 function plot_simulation_dynamics(results, save::Bool = false, filename = "")
     pdata = stack(results[2])
