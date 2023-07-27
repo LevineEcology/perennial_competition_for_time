@@ -1,4 +1,4 @@
-## WATER_ONLY_SIMULATOR -- main.jl
+## WATER_AND_LIGHT_SIMULATOR -- main.jl
 ##
 ## by: Jacob Levine - jacoblevine@princeton.edu
 ## November 2022
@@ -8,6 +8,7 @@
 ## 0. define includes and parameters
 ##---------------------------------------------------------------
 ##---------------------------------------------------------------
+
 
 using Plots, QuadGK, DataFrames, Distributions,
     SpecialFunctions, NLsolve, AutoPreallocation,
@@ -25,7 +26,7 @@ b::Float64 = 3.0  ## biomass allometric constant
 F::Float64 = 10.0  ## fecundity per unit biomass
 W₀::Float64 = 0.4 ## initial water content (default)
 θ_fc::Float64 = 0.4 ## field capacity
-P::Int64 = 10
+P::Float64 = 10.0
 
 ## include function headers
 include("simulation_functions.jl")
@@ -43,6 +44,7 @@ my_cgrad = cgrad(:roma)
 function calc_ir(g1, F, μ)
     (2 * F * g1^2) / (μ^3)
 end
+
 
 spp_data = generate_spp_data(1, 0.6, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
 
@@ -391,7 +393,7 @@ spp_data
 
 uf = 0.1
 Nyr = 800
-P = 5
+P = 5.0
 
 precip_list = range(0.1, stop = 1.5, length = 100)
 results = DataFrame(total_precip = precip_list,
@@ -402,7 +404,7 @@ results = DataFrame(total_precip = precip_list,
                     ending_swc = Vector{Float64}(undef, length(precip_list)),
                     avg_height = Vector{Float64}(undef, length(precip_list)))
 
-mt = mortality_table(Nyr*P, μ, repeat([1.0/P], inner = Nyr*P))
+mt = mortality_table(Nyr*Int(round(P)), μ, repeat([1.0/P], inner = Nyr*Int(round(P))))
 
 Threads.@threads for i in 1:length(precip_list)
     res = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, results[i, :total_precip],
@@ -431,15 +433,16 @@ savefig("figures/gradient.pdf")
 plot(results.total_precip, results.ending_swc, seriestype = :line)
 plot(results.total_precip, results.starting_swc, seriestype = :line)
 
-
-res = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, 0.75,
+res = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, 1.2, 0.75,
                         0.6, mt, false, 0.4, 3.0, uf, false)
 plot_simulation_dynamics(res)
 
 
-## FOR P
+
+
+## FOR P, maintaining storm size
 Nyr = 500
-p_list = range(2, stop = 20, length = 10)
+p_list = range(4, stop = 12, length = 40)
 p_results = DataFrame(storm_frequency = p_list,
                     n_coex = Vector{Int64}(undef, length(p_list)),
                     spp_id = Vector{Vector{Int64}}(undef, length(p_list)),
@@ -447,9 +450,54 @@ p_results = DataFrame(storm_frequency = p_list,
                     starting_swc = Vector{Float64}(undef, length(p_list)),
                     ending_swc = Vector{Float64}(undef, length(p_list)),
                     avg_height = Vector{Float64}(undef, length(p_list)))
-p_results.storm_frequency .= Int.(round.(p_results.storm_frequency))
 
 Threads.@threads for i in 1:length(p_list)
+    println(Threads.threadid())
+    P = p_results[i, :storm_frequency]
+    res = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, 0.05 * P,
+                        0.6, zeros(1,1), false, 0.4, 3.0, uf, false)
+    p_results[i, :n_coex] = sum(Matrix(res[2])[Nyr*Int(round(P)), 2:nrow(spp_data)+1] .> 0.01) ## set threshold for persistance
+    p_results[i, :spp_id] = findall(Matrix(res[2])[Nyr*Int(round(P)), 2:nrow(spp_data)+1] .> 0.01)
+    p_results[i, :canopy_cover] = sum(Matrix(res[8])[Nyr*Int(round(P)), 2:nrow(spp_data)+1])
+    p_results[i, :starting_swc] = res[6][Nyr*Int(round(P))]
+    p_results[i, :ending_swc] = res[5][Nyr*Int(round(P))]
+    p_results[i, :avg_height] = mean(Matrix(res[7])[Nyr*Int(round(P)), 2:nrow(spp_data)+1])
+    println("completed iteration: " * string(i) * " of " * string(length(p_list)))
+end
+p_results
+CSV.write("gradient_results_freq.csv", p_results)
+
+Nyr * Int(round(p_results[i,:storm_frequency]))
+
+p1 = plot(p_results.storm_frequency, p_results.n_coex, seriestype = :line, linewidth = 3,
+          frame = :box, legend = :none, ylab = "# spp", ylim = (0, nrow(spp_data)))
+p2 = plot(p_results.storm_frequency, p_results.canopy_cover, seriestype = :line, linewidth = 3,
+          frame = :box, legend = :none, color = :green, ylab = "% canopy cover")
+p3 = plot(p_results.storm_frequency, p_results.avg_height, seriestype = :line, linewidth = 3,
+          frame = :box, legend = :none, color = :red, ylab = "avg. height", xlab = "storm frequency")
+p4 = plot(p_results.storm_frequency[1:37], p_results.ending_swc[1:37], seriestype = :line, linewidth = 3,
+          frame = :box, legend = :none, color = :red, ylab = "SWC", xlab = "storm frequency")
+p4 = plot!(p_results.storm_frequency[1:37], p_results.starting_swc[1:37], seriestype = :line, linewidth = 3,
+          frame = :box, legend = :none, color = :orange, ylab = "SWC", xlab = "storm frequency")
+plot(p1, p2, p3, layout = (3,1))
+
+savefig("figures/gradient_freq.pdf")
+
+
+
+## FOR P, variable storm size
+Nyr = 500
+p_list = Int.(round.(range(1, stop = 20, length = 20)))
+p_results = DataFrame(storm_frequency = p_list,
+                    n_coex = Vector{Int64}(undef, length(p_list)),
+                    spp_id = Vector{Vector{Int64}}(undef, length(p_list)),
+                    canopy_cover = Vector{Float64}(undef, length(p_list)),
+                    starting_swc = Vector{Float64}(undef, length(p_list)),
+                    ending_swc = Vector{Float64}(undef, length(p_list)),
+                    avg_height = Vector{Float64}(undef, length(p_list)))
+
+Threads.@threads for i in 1:length(p_list)
+    println(Threads.threadid())
     P = p_results[i, :storm_frequency]
     res = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, 0.3,
                         0.6, zeros(1,1), false, 0.4, 3.0, uf, false)

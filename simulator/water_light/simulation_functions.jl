@@ -452,11 +452,11 @@ end;
 ## simulate water only
 function sim_water_ppa(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
                        Ninit::Float64, μ::Float64 = 0.15, F::Float64 = 10.0,
-                       P::Int64 = 40, mean_p::Float64 = 16.0, θ_fc = 0.4, mt::Matrix{Float64} = zeros(1,1),
+                       P::Float64 = 40.0, mean_p::Float64 = 16.0, θ_fc = 0.4, mt::Matrix{Float64} = zeros(1,1),
                        pb::Bool = true, w_init::Float64 = 0.4, b::Float64 = 2.5, understory_factor::Float64 = 0.1,
                        perturb::Bool = false, perturb_frac::Float64 = 0.5, perturb_factor::Float64 = 0.9)
 
-    Nyr = Nyr * P
+    Nyr = Nyr * Int(round(P))
 
     ## setup for simulations
     ## generate biomass and population data frames
