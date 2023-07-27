@@ -116,15 +116,6 @@ out = sim_water_only_stochastic(spp_data, nrow(spp_data), 1.0, rr,
                                 0.4, μ, F)
 plot_simulation_dynamics_stochastic(out, rr)
 
-
-la = Matrix(out[1])
-mean(sum(la[size(la)[1]-(0.1*size(la)[1]):size(la)[1],2:size(la)[2]], dims = 2))
-
-transpiration = (out[6] - out[5]) ./ rr[2]
-l = length(transpiration)
-mean(transpiration[length(transpiration)-Int(round(0.1*length(transpiration))):length(transpiration)])
-
-length(transpiration)
 ##---------------------------------------------------------------
 ## multi
 ##---------------------------------------------------------------
@@ -141,6 +132,7 @@ plot(sub.totalmean, sub.mean, group = sub.totalsd, line_z = sub.totalsd,
      xlim = [minimum(sub.totalmean), maximum(sub.totalmean)],
      ylim = [0.0, 20], frame = :box, grid = false, linewidth = 3, fillalpha = 0.3,
      colorbar = true, colorbar_title = "mean annual precip.")
+
 
 var_p = multi_eq_variable_P(20, 10, 400, 0.6, 2, 40, 12,
                             0.5, 10.0, 5, 4.0, 1.5, 10.0, 0.5, false)
