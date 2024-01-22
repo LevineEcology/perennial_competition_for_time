@@ -3,13 +3,37 @@
 ##
 ## By: Jacob Levine -- jacoblevine@princeton.edu
 ## November 2022
+##
+## This script defines functions used to perform analyses across environmental
+## gradients, typically performing calculations over a range of environmental values
+## for many communities.
 ##---------------------------------------------------------------
 
-function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 100, θ_fc = 0.4,
-                  mintotal::Float64 = 0.1 * 15, maxtotal::Float64 = 0.6 * 15,
+"""
+    multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+             mintotal::Float64 = 0.1, maxtotal::Float64 = 3.0,
+             lengthtotal::Int64 = 10,
+             minP::Int64 = 8, maxP::Int64 = 50, lengthP::Int64 = 10,
+             F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+             constant_ss::Bool = false, ss::Float64 = 0.02)
+
+Calculates equilibrium population density, equilibrium biomass, and total ecosystem evapotranspiration
+over a gradient of precipitation regimes supplied by the user. `Nspp` sets the size of the communities, while
+`Niter` dictates how many communities will be generated.
+
+The precipitation regimes are defined by two parameters, `total`, which describes the total monthly
+precipitation in the volumetric water content equivalent, and `P` whichdescribes the number of storms that occur
+per month. Both of these parameters are assumed to be invariable. Therange of the parameters over which
+calculations are performed are set by `mintototal`/`maxtotal` and `minP`/`maxP`, while the number of values over
+which to perform the calculations is specified by `lengthtotal` and `lengthP`. The `constant_ss` flag lets the
+user override the parameterization and dictate a constant storm size, which is provided by `ss`.
+"""
+function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                  mintotal::Float64 = 0.1, maxtotal::Float64 = 3.0,
                   lengthtotal::Int64 = 10,
                   minP::Int64 = 8, maxP::Int64 = 50, lengthP::Int64 = 10,
-                  F::Float64 = 10.0, μ::Float64 = 0.03)
+                  F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                  constant_ss::Bool = false, ss::Float64 = 0.02)
 
     total_list = collect(range(mintotal, stop = maxtotal, length = lengthtotal));
     P_list = collect(range(minP, stop = maxP, length = lengthP));
@@ -24,49 +48,62 @@ function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 100, θ_fc =
                   repeat(total_list, outer = length(P_list)));
 
     params[params[:,1] .> θ_fc, 1] .= θ_fc;
-    params
+    if constant_ss
+        params[:,1] .= params[:,2] .* ss
+    end
 
     sd = []
     for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.6, 1.0 / ((maxP - minP) / 2), F, μ,
-                                         2.5, 0.5, 0.0, 0.0001, 0.00005))
+        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
+                                         3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6))
     end
 
     full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
-    leaf_area_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    biomass_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     transpir_results = Array{Float64}(undef, Niter, size(params)[1])
     Threads.@threads for i in 1:size(params)[1]
         sub_results = Vector{Float64}(undef, Nspp*Niter)
-        leaf_area_sub = Vector{Float64}(undef, Nspp*Niter)
+        biomass_sub = Vector{Float64}(undef, Nspp*Niter)
+
         for j in 1:Niter
             spp_data = sd[j]
-            eqN = Matrix(sim_water_ppa(spp_data, Nyr, nrow(spp_data), 1.0, μ, F,
-                                    Int(round(params[i,2])), params[i,1], θ_fc, zeros(1,1),
-                                       false)[2])[Int(Nyr*round(params[i,2])),2:nrow(spp_data)+1]
+            ## need to recalculate τ, because T changes with params
+            spp_data.τ = calc_τ.(spp_data.C₁, spp_data.C₂, F, μ, 1.0 / params[i,2], b)
+            eqN = Vector(calc_eqN(spp_data, 1.0 / params[i,2], params[i,1], F, E, θ_fc, μ, false, false, 0.1)[:,:eqN])
             sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqN
-            leaf_area_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = calc_eq_leaf_area(eqN, F, μ)
+            eqB = calc_eq_biomass(spp_data,
+                                  params[i, 1], E, 1.0 / params[i,2], F, μ, uf)
+            biomass_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqB
             if sum(eqN .> 0.0) == 0
                 transpir_results[j,i] = 0
             else
-                transpir_results[j,i] = (params[i,1] - minimum(spp_data[eqN .> 0.0, :Wᵢ])) * params[i, 2]
+                transpir_results[j,i] = params[i,1] * params[i, 2]
             end
         end
-        println("completed iteration: " * string(i) * " of ", * string(size(params)[1]))
+
+        println("completed iteration: " * string(i) * " of " * string(size(params)[1]))
         full_results[:,i] = sub_results
-        leaf_area_results[:,i] = leaf_area_sub
+        biomass_results[:,i] = biomass_sub
     end
 
-    return [full_results, Niter, params, Nspp, leaf_area_results, transpir_results]
+    return [full_results, Niter, params, Nspp, biomass_results, transpir_results]
 
 end
 
 
+"""
+    summarize_multi_eq(multi_eq_output::Vector{Any})
+
+Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium population densities
+across iterations for each precipitation regime. The standard deviation in density is also included
+in this dataframe.
+"""
 function summarize_multi_eq(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
     summary = DataFrame(total = repeat(multi_eq_output[3][:,3], outer = 4),
-                        T = repeat(multi_eq_output[3][:,2], outer = 4),
+                        P = repeat(multi_eq_output[3][:,2], outer = 4),
                         var = repeat(["n", "min", "max", "avg"], inner = Npar),
                         mean = Vector{Float64}(undef, Npar*4),
                         sd = Vector{Float64}(undef, Npar*4))
@@ -95,14 +132,23 @@ function summarize_multi_eq(multi_eq_output::Vector{Any})
 end;
 
 
-function summarize_multi_eq_leafarea(multi_eq_output::Vector{Any})
+"""
+    summarize_multi_eq_biomass(multi_eq_output::Vector{Any})
+
+Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium biomass
+across iterations for each precipitation regime. The standard deviation in biomass is also included
+in this dataframe.
+"""
+function summarize_multi_eq_biomass(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; Npar = size(multi_eq_output[1])[2];
     summary = DataFrame(total = repeat(multi_eq_output[3][:,3]),
-                        T = repeat(multi_eq_output[3][:,2]),
+                        P = repeat(multi_eq_output[3][:,2]),
                         mean = Vector{Float64}(undef, Npar),
                         sd = Vector{Float64}(undef, Npar))
+
+    summary.total = round.(summary.total .* 100)
 
     la_temp = Vector{Float64}(undef, Niter);
 
@@ -117,14 +163,24 @@ function summarize_multi_eq_leafarea(multi_eq_output::Vector{Any})
 
 end;
 
+
+"""
+    summarize_multi_eq_transpiration(multi_eq_output::Vector{Any})
+
+Summarizes the output of `multi_eq`, creating a dataframe of mean evapotranspiration rate
+across iterations for each precipitation regime. The standard deviation in evapotranspiration is also included
+in this dataframe.
+"""
 function summarize_multi_eq_transpiration(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; Npar = size(multi_eq_output[1])[2];
     summary = DataFrame(total = repeat(multi_eq_output[3][:,3]),
-                        T = repeat(multi_eq_output[3][:,2]),
+                        P = repeat(multi_eq_output[3][:,2]),
                         mean = Vector{Float64}(undef, Npar),
                         sd = Vector{Float64}(undef, Npar))
+
+    summary.total = round.(summary.total .* 100)
 
     for i in 1:size(multi_eq_output[6])[2]
         summary[i, :mean] = mean(multi_eq_output[6][:,i]); summary[i, :sd] = std(multi_eq_output[6][:,i])
@@ -134,77 +190,58 @@ function summarize_multi_eq_transpiration(multi_eq_output::Vector{Any})
 
 end;
 
-
-
-## NEED TO EDIT
-function plot_multi_eq(data::DataFrame, yvar::String = "n", xvar::Symbol = :W₀, Nspp::Int = 10, save::Bool = true, filename = "")
-
-    if xvar == :W₀
-        groupvar = :T
-        xl = "W₀"
-        ll = "T₀"
-    else
-        groupvar = :W₀
-        xl = "T₀"
-        ll = "W₀"
-    end
-
-    if yvar == "n"
-        yl = "# species coexisting"
-    elseif yvar == "min"
-        yl = "Min. ID of coexisting species"
-    else
-        yl = "Avg. ID of coexisting species"
-    end
-
-    subdata = data[data.var .== yvar, :]
-    p = plot(subdata[:,xvar], subdata.mean, group = subdata[:,groupvar], line_z = subdata[:,groupvar],
-             fill_z = subdata[:,groupvar], ribbon = subdata.sd, seriescolor = my_cgrad,
-             seriestype = :line, ylim = [0, Nspp], xlim = [minimum(subdata[:,xvar]), maximum(subdata[:,xvar])],
-             legend = :topleft, frame = :box, grid = false, linewidth = 3, fillalpha = 0.3,
-             xlab = xl, legendtitle = ll, ylab = yl, colorbar = false)
-
-    if save
-        savefig(p, filename)
-    end
-
-    return p
-
-end;
-
-
 ##---------------------------------------------------------------
 ## Stochastic
 ##---------------------------------------------------------------
 
-function multi_eq_variable_total(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
-                                 mintotalmean::Float64 = 0.1 * 15, maxtotalmean::Float64 = 0.6 * 15,
-                                 lengthtotalmean::Int64 = 10,
-                                 mintotalsd::Float64 = 0.0, maxtotalsd::Float64 = 1.5, lengthtotalsd::Int64 = 5,
-                                 Pmean::Int64 = 10, Pdisp::Float64 = 10.0,
-                                 F::Float64 = 10.0, μ::Float64 = 0.03, cluster::Bool = false)
+function multi_eq_variable_map(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
+                               min_map_mean::Float64 = 0.1 * 15, max_map_mean::Float64 = 0.6 * 15,
+                               length_map_mean::Int64 = 10,
+                               min_map_sd::Float64 = 0.0, max_map_sd::Float64 = 1.5, length_map_sd::Int64 = 5,
+                               Pmean::Float64 = 10.0, Pdisp::Float64 = 10.0, n_ht::Int64 = 1,
+                               F::Float64 = 10.0, μ::Float64 = 0.03, cluster::Bool = false, b::Float64 = 3.0)
 
-    totalmean_list = collect(range(mintotalmean, stop = maxtotalmean, length = lengthtotalmean));
-    totalsd_list = collect(range(mintotalsd, stop = maxtotalsd, length = lengthtotalsd));
-    pars = hcat(repeat(totalmean_list, inner = length(totalsd_list)),
-                repeat(totalsd_list, outer = length(totalmean_list)));
+    ## create combinatorial grid of parameter values
+    map_mean_list = collect(range(min_map_mean, stop = max_map_mean, length = length_map_mean));
+    map_sd_list = collect(range(min_map_sd, stop = max_map_sd, length = length_map_sd));
+    pars = hcat(repeat(map_mean_list, inner = length(map_sd_list)),
+                repeat(map_sd_list, outer = length(map_mean_list)));
 
+    ## generate communities for simulations (# communities = Niter)
     sd = []
     for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.6, 1.0 / Pmean, F, μ, 2.5, 0.05, 0.0))
+        sd = push!(sd, generate_spp_data(Nspp, 0.7, n_ht, 1.0 / Pmean, F, μ, b, 0.4, 0.0, 0.0001, 0.00005, 11.0))
     end
 
+    ## create empty arrays for results
     full_results = Array{Float64}(undef, Nspp*Niter, size(pars)[1])
     leaf_area_results = Array{Float64}(undef, Niter, size(pars)[1])
     transpir_results = Array{Float64}(undef, Niter, size(pars)[1])
-    Threads.@threads for i in ProgressBar(1:size(pars)[1])
+
+    ## loop through parameters and communities in parallel
+    Threads.@threads for i in 1:size(pars)[1]
+
+        println("starting iteration: " * string(i) * " of ", string(size(pars)[1]))
+
+        ## create new rainfall regime
         rr = generate_rainfall_regime(Nyr, Pmean, Pdisp, pars[i, 1], pars[i, 2])
+
+        ## create mortality_table in advance to save time
         mort = mortality_table(length(rr[2]), μ, rr[2])
+
+        ## empty vector for parameter set i's results
         sub_results = Vector{Float64}(undef, Nspp*Niter)
+
+        ## loop over communities
         for j in 1:Niter
+
+            println("for community: " * string(j))
+
+            ## conduct simulation
             spp_data = sd[j]
-            result = sim_water_only_stochastic(spp_data, Nspp, 1.0, rr, θ_fc, μ,
-                                                   F, mort, false)
+            result = sim_water_ppa_stochastic(spp_data, length(rr[1]), Nspp, 1.0, rr, F, θ_fc, μ,
+                                              mort, θ_fc, b, 0.1, false)
+
             ## equilibrium population density
             eqN = Matrix(result[2])[length(rr[2]), 2:Nspp+1]
             sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] .= eqN
@@ -212,21 +249,25 @@ function multi_eq_variable_total(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64
             ## average leaf area
             la = Matrix(result[1])
             leaf_area_results[j,i] = mean(sum(la[size(la)[1]-
-                Int(round(0.1*size(la)[1])):size(la)[1],2:size(la)[2]], dims = 2))
+                Int(round(0.1*size(la)[1])):size(la)[1], 2:size(la)[2]], dims = 2))
 
             ## average annual transpiration
             transpiration = (result[6] - result[5]) ./ rr[2]
             l = length(transpiration)
-            transpiration_results = mean(transpiration[length(transpiration)-
+            transpir_results[j,i] = mean(transpiration[length(transpiration)-
                 Int(round(0.1*length(transpiration))):length(transpiration)])
 
         end
+
         full_results[:,i] = sub_results
     end
 
-    return [full_results, Niter, pars, Nspp, leaf_area_results, transpiration_results]
+    return [full_results, Niter, pars, Nspp, leaf_area_results, transpir_results]
 
 end
+
+
+
 
 function multi_eq_variable_P(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
                              minPmean::Int64 = 0.1 * 15, maxPmean::Int64 = 0.6 * 15,
@@ -268,18 +309,18 @@ end
 
 
 
-function summarize_multi_eq_variable_total(multi_eq_output::Vector{Any})
+function summarize_multi_eq_variable_map(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
-    summary = DataFrame(totalmean = repeat(multi_eq_output[3][:,1], outer = 4),
-                        totalsd = repeat(multi_eq_output[3][:,2], outer = 4),
+    summary = DataFrame(mapmean = repeat(multi_eq_output[3][:,1], outer = 4),
+                        mapsd = repeat(multi_eq_output[3][:,2], outer = 4),
                         var = repeat(["n", "min", "max", "avg"], inner = Npar),
                         mean = Vector{Float64}(undef, Npar*4),
                         sd = Vector{Float64}(undef, Npar*4))
 
-    summary.totalmean = round.(summary.totalmean .* 100)
-    summary.totalsd = round.(summary.totalsd .* 100)
+    summary.mapmean = round.(summary.mapmean .* 100)
+    summary.mapsd = round.(summary.mapsd .* 100)
 
     nfeas_temp = Vector{Float64}(undef, Niter); maxfeas_temp = Vector{Float64}(undef, Niter);
     minfeas_temp = Vector{Float64}(undef, Niter); avgfeas_temp = Vector{Float64}(undef, Niter);
@@ -349,56 +390,3 @@ end;
 
 
 
-
-"""
-    dens_est_constant_water(Nspp::Int64 = 10, Niter::Int64 = 10,
-                                 minW₀::Float64 = 0.1, maxW₀::Float64 = 0.6, lengthW₀::Int64 = 10,
-                                 minT::Float64 = 1.0, maxT::Float64 = 100.0, lengthT::Int64 = 10)
-
-TBW
-"""
-function multi_eq_geography(sm_grid, Nspp::Int64 = 40)
-
-    spp_data = generate_spp_data(Nspp, 0.8, 40.0, 100.0, 0.1, 2.5, 0.4, 0.0) ## initialize spp_data
-    diversity_results = Matrix{Int64}(undef, size(sm_grid[:,:,1], 1), size(sm_grid[:,:,1], 2))
-    biomass_results = Matrix{Float64}(undef, size(sm_grid[:,:,1], 1), size(sm_grid[:,:,1], 2))
-    phenology_results = Matrix{Float64}(undef, size(sm_grid[:,:,1], 1), size(sm_grid[:,:,1], 2))
-    @Threads.threads for i in 1:size(sm_grid[:,:,1], 2)
-        for j in 1:size(sm_grid[:,:,1], 1)
-            result = calc_eqN(spp_data, F, E, Float64(sm_grid[:,:,1][j,i]))
-            winners = result[result.eqN .> 1e-20, :spp]
-            diversity_results[j,i] = count(result.eqN .> 1e-20)
-            biomass_results[j,i] = sum(eq_biomass(result[result.eqN .> 1e-20,:], result[result.eqN .> 1e-20,:eqN]))
-            phenology_results[j,i] = mean(winners)
-        end
-    end
-
-    return [diversity_results, biomass_results, phenology_results]
-
-end
-
-function eq_biomass(spp_data::DataFrame, eqN::Vector{Float64}, T = 40.0, b = 2.5, μ = 0.1)
-
-    n_data = DataFrame(rowkey = repeat([1:1:1e3;], inner = length(eqN)),
-                       spp = repeat(string.([1:1:length(eqN);]), outer = Int(1e3)),
-                       N = repeat(repeat(Float64[0], inner = length(eqN)), inner = Int(1e3)));
-    n_data = unstack(n_data, :spp, :N);
-    n_data[!,[2:ncol(n_data);]] .= convert.(Float64,n_data[!,[2:ncol(n_data);]]);
-
-    biomass_data = DataFrame(rowkey = repeat([1:1:1e3;], inner = length(eqN)),
-                       spp = repeat(string.([1:1:length(eqN);]), outer = Int(1e3)),
-                             B = repeat(repeat(Float64[0], inner = length(eqN)), inner = Int(1e3)));
-    biomass_data = unstack(biomass_data, :spp, :B);
-    biomass_data[!,[2:ncol(biomass_data);]] .= convert.(Float64,biomass_data[!,[2:ncol(biomass_data);]]);
-    g = calc_g.(spp_data.τ, spp_data[:,:C₁], spp_data[:,:C₂], 40.0)
-
-    for i in 1:length(eqN)
-        for j in 1:Int(1e3)
-            n_data[j,i+1] = (1-μ)^j * eqN[i]
-            biomass_data[j,i+1] = g[i]^b * (j*T)^b
-        end
-    end
-
-    ΣB(biomass_data, n_data, Vector{Float64}(undef, length(eqN)))
-
-end
