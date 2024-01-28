@@ -37,14 +37,19 @@ function generate_spp_data(Nspp::Int64, Wmax::Float64 = 0.8, n_ht::Int64 = 1, T:
                            F::Float64 = 100.0, μ::Float64 = 0.1,
                            b::Float64 = 2.5, tradeoff_exp::Float64 = 0.4,
                            tradeoff_sd::Float64 = 0.0,
-                           C₁max::Float64 = 0.01, C₂max::Float64 = 0.001,
-                           spread_multiplier::Float64 = 25.0, min_ht::Float64 = 0.3, max_ht::Float64 = 0.7)
+                           Xmax::Float64 = 10.0, C₂::Float64 = 0.001,
+                           spread_multiplier::Float64 = 25.0, min_ht::Float64 = 0.3,
+                           max_ht::Float64 = 0.7, aₘ::Float64 = 0.03, γ::Float64 = 0.5,
+                           rᵣ::Float64 = 0.01, cₓ::Float64 = 1.5)
 
-    ## generate a list of species with C₁ drawn from a uniform distribution
-    spp_data = DataFrame(C₁ = rand(Uniform(0.0000005, C₁max), Nspp) .* 365.0,
-                         C₂ = repeat([C₂max], Nspp) .* 365.0);
+    ## generate a list of species with X (wood density) drawn from a uniform distribution
+    X = rand(Uniform(0.01, Xmax), Nspp)
+    spp_data = DataFrame(X = X,
+                         aₘ = repeat([aₘ], Nspp),
+                         C₁ = (aₘ - (γ * rᵣ)) ./ (cₓ .* X),
+                         C₂ = repeat([C₂], Nspp))
     ## calculate the break-even time of each species
-    spp_data.τ = broadcast(calc_τ, spp_data.C₁, spp_data.C₂, F, μ, T, b);
+    spp_data.τ = broadcast(calc_τ, spp_data.C₁, spp_data.C₂, F, μ, T, b)
     ## calculate the critical water content for each species from an exponential tradeoff
     spp_data.Wᵢ = Wmax .* exp.(-tradeoff_exp .* (5 .- spread_multiplier * spp_data.C₁)) .+
         rand(Normal(0, tradeoff_sd), Nspp) ## add random noise, if specified by user
@@ -67,6 +72,76 @@ end;
 
 
 """
+    calc_vpd(t::Float64, rh::Float64)
+
+Calculate vapor pressure deficit (`dₛ`) from temperature in C and relative humidity
+as a percent (i.e. 20 = 20 percent).
+
+"""
+function calc_vpd(t::Float64, rh::Float64)
+    es = 0.6108 * exp((17.27 * t) / (t + 237.3))
+    ea = (rh / 100) * es
+    (es - ea) * 1000
+end;
+
+
+"""
+    calc_aₘ(cₐ::Float64, dₛ::Float64, V::Float64 = 1.04545,
+                 d₀::Float64 = 1000, Γ::Float64 = 50, m::Float64 = 5.6,
+                 rₗ::Float64 = 0.1, ω::Float64 = 450)
+
+Calculate maximum carbon assimilation rate (`aₘ`) from atmospheric carbon concentration `cₐ`,
+vapor pressure deficit `dₛ`, and physiological parameters.
+
+"""
+function calc_aₘ(cₐ::Float64, dₛ::Float64, V::Float64 = 1.04545,
+                 d₀::Float64 = 1000.0, Γ::Float64 = 50.0, m::Float64 = 5.6,
+                 ω::Float64 = 450.0, rₗ::Float64 = 0.001)
+
+    ((V * (cₐ - ((cₐ - Γ) * (1 + (dₛ / d₀)) / m))) /
+        (ω + (cₐ - ((cₐ - Γ) * (1 + (dₛ / d₀)) / m)))) - rₗ
+
+end;
+
+
+"""
+    calc_V(aₘ::Float64, cₐ::Float64, dₛ::Float64, d₀::Float64 = 1000,
+           Γ:Float64 = 50, m::Float64 = 5.6, rₗ::Float64 = 0.1, ω::Float64 = 450)
+
+Calculate maximum photosynthetic rate (`Vmax`) from
+
+"""
+function calc_V(aₘ::Float64, cₐ::Float64, dₛ::Float64, d₀::Float64 = 1000.0,
+                Γ::Float64 = 50.0, m::Float64 = 5.6, ω::Float64 = 450.0, rₗ::Float64 = 0.001)
+
+    (aₘ + rₗ) * (ω + (cₐ - ((cₐ - Γ) * (1 + (dₛ / d₀)) / m))) / (cₐ - ((cₐ - Γ) * (1 + (dₛ / d₀)) / m))
+
+end;
+
+
+"""
+    adjust_spp_data(spp_data::DataFrame, t::Float64, rh::Float64, cₐ::Float64,
+                         default_t::Float64 = 25, default_rh::Float64 = 0.3,
+                         default_cₐ::Float64 = 419, b::Float64 = 3)
+
+Adjust C₁ values in an spp_data object for changes in vpd (temperature and relative humidity) and
+atmospheric carbon concentration.
+
+"""
+function adjust_spp_data!(spp_data::DataFrame, t::Float64, rh::Float64, cₐ::Float64,
+                          default_t::Float64 = 24.0, default_rh::Float64 = 30.0,
+                          default_cₐ::Float64 = 280.0, b::Float64 = 3.0,
+                          γ::Float64 = 0.5, rᵣ::Float64 = 0.01, cₓ::Float64 = 1.5)
+
+    V = calc_V.(spp_data.aₘ, default_cₐ, calc_vpd(default_t, default_rh))
+    calc_aₘ.(cₐ, calc_vpd(t, rh), V)
+    spp_data.C₁ = (calc_aₘ.(cₐ, calc_vpd(t, rh), V) .- (γ * rᵣ)) ./ (cₓ .* spp_data.X)
+    return(spp_data)
+
+end;
+
+
+"""
     sigma(μ::Float64, ex::Float64)
 
 Calculates polylogarithm term that re-occurs in many expressions.
@@ -84,6 +159,7 @@ Calculates the average growth rate of a species over an inter-storm interval.
 function calc_g(t::Float64, C₁::Float64, C₂::Float64, T::Float64)
     (t * C₁ - (T-t) * C₂) / T
 end;
+
 
 """
     calc_eq_leaf_area(eqN::Vector{Float64}, F::Float64, μ::Float64)

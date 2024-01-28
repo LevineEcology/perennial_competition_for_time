@@ -549,6 +549,9 @@ function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
 
 end;
 
+LinRange(0, 1, 11)
+LinRange(0, 2, 11)
+
 """
     sim_water_ppa(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
                        Ninit::Any, μ::Float64 = 0.15, F::Float64 = 10.0,

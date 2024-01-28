@@ -12,7 +12,7 @@
 using Plots, QuadGK, DataFrames, Distributions,
     SpecialFunctions, NLsolve, AutoPreallocation,
     Profile, PProf, PlotThemes, CSV, GeoArrays, Random, Debugger,
-    ForwardDiff, Polylogarithms, ProgressBars, Roots
+    ForwardDiff, Polylogarithms, ProgressBars, Roots, Distributed
 
 ## simulation parameters
 Nspp::Int64 = 10; Nyr::Int64 = 1000; Ninit::Float64 = 1.0;
@@ -36,7 +36,6 @@ include("meta_functions.jl")
 ## set plotting variables
 theme(:default)
 my_cgrad = cgrad(:roma)
-
 ##---------------------------------------------------------------
 ## Does single-species invasion criteria work?
 ##---------------------------------------------------------------
@@ -45,7 +44,7 @@ function calc_ir(g1, F, μ)
     (2 * F * g1^2) / (μ^3)
 end
 
-spp_data = generate_spp_data(1, 0.6, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
+spp_data = generate_spp_data(1, 0.6, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 10.0, 0.00005)
 
 ## should successfully invade
 μ = 0.1
@@ -90,7 +89,7 @@ Random.seed!(3)
 spp_data = generate_spp_data(Nspp = 1, Wmax = 0.6, n_ht = 1, T = 1.0 / P,
                              F = F, μ = μ, b = 3.0, tradeoff_exp = 0.5,
                              tradeoff_sd = 0.0,
-                             C₁max = 0.0001, C₂max = 0.00005);
+                             C₁max = 10.0, C₂max = 0.00005);
 
 out = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, 0.5, θ_fc,
                     zeros(1,1), true, 0.4, 3.0, 0.1)
@@ -167,7 +166,7 @@ end
 spp_data = generate_spp_data(Nspp = 1, Wmax = 0.6, n_ht = 1,
                              T = 1.0 / P, F = F, μ = μ, b = 3.0,
                              tradeoff_exp = 0.5, tradeoff_sd = 0.0,
-                             C₁max = 0.0001, C₂max = 0.00005)
+                             C₁max = 10.0, C₂max = 0.00005)
 spp_data.ht .= 0.5
 
 F = 100.0
@@ -221,7 +220,7 @@ var = Vector{Float64}(undef, length(uf_list))
 ind = Vector{Float64}(undef, length(uf_list))
 
 spp_data = generate_spp_data(1, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
-spp_data.ht .= 0.5
+spp_data.ht .= 0.5points
 for i in 1:length(uf_list)
     ind[i] = stability_crit(spp_data, spp_data.C₁[1], uf_list[i], P, μ, F)
     out = sim_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, 0.1, zeros(1,1), true, 3.0, uf_list[i], false)
@@ -229,7 +228,7 @@ for i in 1:length(uf_list)
 end
 
 plot(uf_list, var, seriestype = :scatter)
-plot(ind, var, seriestype = :scatter)
+plot(ind, var, series :scatter)
 
 ## Though I feel like I understand which parameters generate instability,
 ## I am not satisfied because I cannot get the threshold to work. Not sure
@@ -250,7 +249,7 @@ uf = 0.1
 μ = 0.1
 
 Random.seed!(1)
-spp_data = generate_spp_data(2, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
+spp_data = generate_spp_data(2, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 10.0, 0.00005)
 
 calc_xstar(spp_data[1,:C₁], uf, P, μ, F)
 calc_xstar(spp_data[2,:C₁], uf, P, μ, F)
@@ -273,7 +272,7 @@ uf = 0.1
 mean_p = 2.0
 
 Random.seed!(4) ## change seed to get iteration where both species have positive zstar
-spp_data = generate_spp_data(2, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
+spp_data = generate_spp_data(2, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 10.0, 0.00005)
 mono_zstar(spp_data, F, P, μ, mean_p, θ_fc, Nyr)
 ## species 1 should win
 
@@ -290,7 +289,7 @@ plot_canopy_cover(out)
 
 ## try for 5 species
 Random.seed!(1)
-spp_data = generate_spp_data(5, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
+spp_data = generate_spp_data(5, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 10.0, 0.00005)
 
 F = 100.0
 μ = 0.1
@@ -321,7 +320,7 @@ P = 10
 μ = 0.11
 uf = 0.1
 Random.seed!(4)
-spp_data = generate_spp_data(4, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 11.0)
+spp_data = generate_spp_data(4, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 11.0)
 spp_data.ht .= 0.5
 
 out_02 = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, 0.2, θ_fc, zeros(1,1), true, 0.4, 3.0, uf, false)
@@ -357,7 +356,7 @@ savefig("figures/sequence.pdf")
 
 
 
-spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0)
+spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0)
 
 p1 = plot(spp_data.Wᵢ[3:12], spp_data.C₁[3:12], marker_z = spp_data.C₁[3:12], xflip = true, seriestype = :scatter, legend = :none,
           markersize = 8, seriescolor = my_cgrad, frame = :box)
@@ -418,7 +417,7 @@ savefig(p2, "~/Documents/Science/application_materials/f4.pdf")
 
 
 uf = 0.1
-spp_data = generate_spp_data(3, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0)
+spp_data = generate_spp_data(3, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0)
 
 plot(spp_data.τ, spp_data.Wᵢ, marker_z = spp_data.C₁, seriestype = :scatter, legend = :none,
           markersize = 8, seriescolor = my_cgrad, frame = :box)
@@ -493,7 +492,7 @@ uf = 0.1
 P = 3
 T = 1 / P
 Random.seed!(4)
-spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.7)
+spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.7)
 spp_data = spp_data[1:3,:]
 spp_data.ht .= 0.5
 
@@ -521,7 +520,7 @@ uf = 0.1
 P = 3
 T = 1 / P
 Random.seed!(4)
-spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.7)
+spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.7)
 spp_data = spp_data[1:5,:]
 spp_data.ht .= 0.5
 
@@ -582,7 +581,7 @@ function calc_T_cx(spp_data, E, ρ)
 end
 
 
-spp_data = generate_spp_data(10, 0.7, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 11.0)
+spp_data = generate_spp_data(10, 0.7, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 11.0)
 spp_data.ht[[1,3,5,7,9]] .= 0.2
 spp_data.ht[[2,4,6,8,10]] .= 0.8
 
@@ -632,11 +631,11 @@ F = 200.0
 uf = 0.1
 
 Random.seed!(4)
-spp_data = generate_spp_data(4, 0.7, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 11.0)
+spp_data = generate_spp_data(4, 0.7, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 11.0)
 spp_data = spp_data[1:3,:]
 spp_data.ht .= 0.5
 
-#spp_data = generate_spp_data(2, 0.6, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 20.0)
+#spp_data = generate_spp_data(2, 0.6, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 20.0)
 #spp_data.ht .= 0.5
 
 out = sim_water_ppa(spp_data, Nyr, nrow(spp_data), [100.0, 100.0, 100.0], μ, F, P, 0.43, θ_fc,
@@ -828,13 +827,12 @@ bp = plot(smeq_b[40:-1:1, :P], smeq_b.mean .* 5, group = smeq_b.total, line_z = 
 plot(np, bp, layout = [1,1])
 savefig("~/Documents/Science/application_materials/f2.pdf")
 
-
-
-spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.0001, 11.0)
+spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.0001, 11.0)
 calc_eqN(spp_data, 0.01, 0.03)
 calc_eq_biomass(spp_data, 0.03, E, 10, F, μ, 0.1, 0.4)
 T = 0.1
 ρ = 0.5
+
 
 
 ##---------------------------------------------------------------
@@ -842,7 +840,7 @@ T = 0.1
 ##---------------------------------------------------------------
 
 # first try with 2 different light strategies
-spp_data = generate_spp_data(20, 0.6, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 20.0)
+spp_data = generate_spp_data(20, 0.6, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 20.0)
 spp_data[[1:2:nrow(spp_data);], :ht] .= 0.5
 spp_data[[2:2:nrow(spp_data);], :ht] .= 0.65
 spp_data
@@ -1045,7 +1043,9 @@ F = 200.0
 uf = 0.1
 
 Random.seed!(4)
-spp_data = generate_spp_data(4, 0.7, 1, 1.0 / P, F, μ, b, 0.4, 0.0, 0.0001, 0.00005, 11.0)
+spp_data = generate_spp_data(4, 0.7, 1, 1.0 / P, F, μ, b, 0.4, 0.0, 10.0, 0.00005, 11.0)
+adjust_spp_data!(spp_data, 35.0, 30.0, 419.0)
+
 spp_data = spp_data[1:3,:]
 spp_data.ht .= 0.5
 
@@ -1057,8 +1057,7 @@ out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r)
 
 plot_simulation_dynamics(out)
 
-
-out = multi_eq_variable_map(20, 10, 400, 0.4, 0.05, 0.4, 10, 0.0, 1.0, 3, 5.0, 4.0, 2, F, μ, false)
+out = multi_eq_variable_map(20, 10, 600, 0.4, 0.05, 0.4, 30, 0.0, 1.0, 4, 5.0, 4.0, 2, F, μ, false)
 out[1]
 
 smeq = summarize_multi_eq_variable_map(out)
@@ -1066,3 +1065,136 @@ sub = smeq[smeq.var .== "n", :]
 np = plot(sub.mapmean, sub.mean, group = sub.mapsd, line_z = sub.mapsd, ribbon = sub.sd, fill_z = sub.mapsd, linewidth = 3.5,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Storm frequency (storms per month)", ylab = "Species richness")
+
+
+
+##---------------------------------------------------------------
+## Alternative forcings
+##---------------------------------------------------------------
+
+##---------------------------------------------------------------
+## carbon and MAP
+##---------------------------------------------------------------
+
+calc_aₘ(500, 1000)
+
+x = collect(range, )
+plot(x, calc_aₘ.(500, calc_vpd.(x, 30.0)))
+
+x = collect(range(100.0, 1500.0, 100))
+plot(x, calc_aₘ.(x, calc_vpd(20.0, 30.0)))
+plot!(x, calc_aₘ.(x, calc_vpd(20.0, 30.0), 1.04545, 1000.0, 50.0, 10.0))
+
+meq = multi_eq_carbon_map(50, 30, 0.2, 100.0, 750.0, 100, 0.2, 0.4, 5, 10.0, F, μ, 2, 0.1)
+smeq = summarize_multi_eq_carbon_map(meq)
+smeq.cₐ .= round.(smeq.cₐ, digits = 2)
+sub = smeq[smeq.var .== "n", :]
+np = plot(sub.cₐ, sub.mean, group = sub.map ./ 10.0, line_z = sub.map ./ 10.0,
+          ribbon = (sub.mean .- sub.lower, sub.upper .- sub.mean),
+          fill_z = sub.map ./ 10.0, linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Atmospheric carbon concentration (ppm)", ylab = "Species richness")
+
+
+smeq_b = summarize_multi_eq_biomass_carbon_map(meq)
+smeq_b.cₐ .= round.(smeq_b.cₐ, digits = 2)
+bp = plot(smeq_b.cₐ, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0,
+          fill_z = smeq_b.map ./ 10.0,
+          linewidth = 3.5,
+          ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Log ecosystem biomass")
+
+plot(np, bp, layout = [1,1])
+savefig("figures/total_gradient.pdf")
+
+summarize_multi_eq_transpiration(meq)
+
+plot(sub.mean, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0, fill_z = smeq_b.map ./ 10.0,
+     linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Species Richness", ylab = "Total biomass")
+savefig("figures/div_es_total.pdf")
+
+
+
+##---------------------------------------------------------------
+## carbon and storm freq
+##---------------------------------------------------------------
+
+calc_aₘ(500, 1000)
+
+x = collect(range, )
+plot(x, calc_aₘ.(500, calc_vpd.(x, 30.0)))
+
+x = collect(range(100.0, 1500.0, 100))
+plot(x, calc_aₘ.(x, calc_vpd(20.0, 30.0)))
+plot!(x, calc_aₘ.(x, calc_vpd(20.0, 30.0), 1.04545, 1000.0, 50.0, 10.0))
+
+meq = multi_eq_carbon_P(50, 30, 0.2, 100.0, 750.0, 100, 7.0, 15.0, 5, 0.3, F, μ, 2, 0.1)
+meq[1]
+smeq = summarize_multi_eq_carbon_P(meq)
+smeq.cₐ .= round.(smeq.cₐ, digits = 2)
+sub = smeq[smeq.var .== "n", :]
+np = plot(sub.cₐ, sub.mean, group = sub.P, line_z = sub.P,
+          ribbon = (sub.mean .- sub.lower, sub.upper .- sub.mean),
+          fill_z = sub.P, linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Atmospheric carbon concentration (ppm)", ylab = "Species richness")
+
+smeq_b = summarize_multi_eq_biomass_carbon_P(meq)
+smeq_b.cₐ .= round.(smeq_b.cₐ, digits = 2)
+bp = plot(smeq_b.cₐ, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P,
+          fill_z = smeq_b.P,
+          linewidth = 3.5,
+          ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Log ecosystem biomass")
+
+plot(np, bp, layout = [1,1])
+savefig("figures/total_gradient.pdf")
+
+summarize_multi_eq_transpiration(meq)
+
+plot(sub.mean, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P, fill_z = smeq_b.P,
+     linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Species Richness", ylab = "Total biomass")
+savefig("figures/div_es_total.pdf")
+
+
+
+##---------------------------------------------------------------
+## temp/VPD
+##---------------------------------------------------------------
+
+meq = multi_eq_temp_map(50, 5, 0.2, 10.0, 45.0, 100, 0.2, 0.4, 5, 10.0, F, μ, 2, 0.1)
+meq[1][1:50,:]
+smeq = summarize_multi_eq_temp_map(meq)
+smeq.t .= round.(smeq.t, digits = 2)
+sub = smeq[smeq.var .== "n", :]
+np = plot(sub.t, sub.mean, group = sub.map ./ 10.0, line_z = sub.map ./ 10.0,
+          ribbon = (sub.mean .- sub.lower, sub.upper .- sub.mean),
+          fill_z = sub.map ./ 10.0, linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Average temperature (C)", ylab = "Species richness")
+
+smeq_b = summarize_multi_eq_biomass(meq)
+smeq_b.cₐ .= round.(smeq_b.cₐ, digits = 2)
+bp = plot(smeq_b.cₐ, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0,
+          fill_z = smeq_b.map ./ 10.0,
+          linewidth = 3.5,
+          ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Log ecosystem biomass")
+
+plot(np, bp, layout = [1,1])
+savefig("figures/total_gradient.pdf")
+
+summarize_multi_eq_transpiration(meq)
+
+plot(sub.mean, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0, fill_z = smeq_b.map ./ 10.0,
+     linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Species Richness", ylab = "Total biomass")
+savefig("figures/div_es_total.pdf")

@@ -55,7 +55,7 @@ function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6))
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
     end
 
     full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
@@ -190,6 +190,618 @@ function summarize_multi_eq_transpiration(multi_eq_output::Vector{Any})
 
 end;
 
+
+##---------------------------------------------------------------
+## Variable carbon and precip
+##---------------------------------------------------------------
+
+"""
+TBW
+"""
+function multi_eq_carbon_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                             min_cₐ::Float64 = 400.0, max_cₐ::Float64 = 450.0, length_cₐ::Int64 = 10,
+                             min_map::Float64 = 0.1, max_map::Float64 = 3.0,
+                             length_map::Int64 = 3,
+                             P::Float64 = 10.0,
+                             F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                             constant_ss::Bool = false, ss::Float64 = 0.02, t::Float64 = 24.0, rh::Float64 = 30.0)
+
+    map_list = collect(range(min_map, stop = max_map, length = length_map));
+    cₐ_list = collect(range(min_cₐ, stop = max_cₐ, length = length_cₐ));
+    params = reshape(collect(Base.product(map_list, cₐ_list)), (length(map_list) * length(cₐ_list), 1));
+
+    W₀_list = Vector{Float64}(undef, length(params))
+    for i in 1:length(params)
+        W₀_list[i] = params[i][1] / P
+    end
+
+    params = hcat(W₀_list, repeat(cₐ_list, inner = length(map_list)),
+                  repeat(map_list, outer = length(cₐ_list)));
+
+    params[params[:,1] .> θ_fc, 1] .= θ_fc;
+    if constant_ss
+        params[:,1] .= params[:,2] .* ss
+    end
+
+    sd = []
+    for i in 1:Niter
+        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+    end
+
+    full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    biomass_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    transpir_results = Array{Float64}(undef, Niter, size(params)[1])
+    prog = ProgressBar(total = size(params)[1])
+    for i in 1:size(params)[1]
+        sub_results = Vector{Float64}(undef, Nspp*Niter)
+        biomass_sub = Vector{Float64}(undef, Nspp*Niter)
+
+        for j in 1:Niter
+            spd = sd[j]
+            adjust_spp_data!(spd, t, rh, params[i, 2]) ## adjust spp data to account for new climate
+            ## need to recalculate τ, because T changes with params
+            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / P, b)
+            eqN = Vector(calc_eqN(spd, 1.0 / P, params[i,1], F, E, θ_fc, μ, false, false, 0.1)[:,:eqN])
+            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqN
+            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / P, F, μ, uf)
+            biomass_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqB
+            if sum(eqN .> 0.0) == 0
+                transpir_results[j,i] = 0
+            else
+                transpir_results[j,i] = params[i,1] * P
+            end
+        end
+
+        full_results[:,i] = sub_results
+        biomass_results[:,i] = biomass_sub
+        #println("completed iteration: " * string(i) * " of " * string(size(params)[1]))
+        update(prog)
+    end
+
+    return [full_results, Niter, params, Nspp, biomass_results, transpir_results]
+
+end
+
+"""
+TBW
+"""
+function summarize_multi_eq_carbon_map(multi_eq_output::Vector{Any})
+
+    ## initialize data
+    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
+    summary = DataFrame(map = repeat(multi_eq_output[3][:,3], outer = 4),
+                        cₐ = repeat(multi_eq_output[3][:,2], outer = 4),
+                        var = repeat(["n", "min", "max", "avg"], inner = Npar),
+                        mean = Vector{Float64}(undef, Npar*4),
+                        lower = Vector{Float64}(undef, Npar*4),
+                        upper = Vector{Float64}(undef, Npar*4))
+
+    summary.map = round.(summary.map .* 100)
+
+    nfeas_temp = Vector{Float64}(undef, Niter); maxfeas_temp = Vector{Float64}(undef, Niter);
+    minfeas_temp = Vector{Float64}(undef, Niter); avgfeas_temp = Vector{Float64}(undef, Niter);
+
+    for i in 1:size(multi_eq_output[1])[2]
+        for j in 1:Niter
+            tmp = findall(multi_eq_output[1][[(Nspp*(j-1))+1:1:Nspp*j;],i] .> 0.0)
+            maxfeas_temp[j] = maximum(tmp, init = 0)
+            minfeas_temp[j] = minimum(tmp, init = 0)
+            avgfeas_temp[j] = mean(tmp)
+            nfeas_temp[j] = length(tmp)
+        end
+        summary[i, :mean] = mean(nfeas_temp)
+        summary[i, :lower] = quantile(nfeas_temp, 0.1)
+        summary[i, :upper] = quantile(nfeas_temp, 0.9)
+        summary[Npar+i, :mean] = mean(minfeas_temp)
+        summary[Npar+i, :lower] = quantile(minfeas_temp, 0.1)
+        summary[Npar+i, :upper] = quantile(minfeas_temp, 0.9)
+        summary[Npar*2+i, :mean] = mean(maxfeas_temp)
+        summary[Npar*2+i, :lower] = quantile(maxfeas_temp, 0.1)
+        summary[Npar*2+i, :upper] = quantile(maxfeas_temp, 0.9)
+        summary[Npar*3+i, :mean] = mean(avgfeas_temp)
+        summary[Npar*3+i, :lower] = quantile(avgfeas_temp, 0.1)
+        summary[Npar*3+i, :upper] = quantile(avgfeas_temp, 0.9)
+    end
+
+    return summary
+
+end;
+
+"""
+TBW
+"""
+function summarize_multi_eq_biomass_carbon_map(multi_eq_output::Vector{Any})
+
+    ## initialize data
+    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; Npar = size(multi_eq_output[1])[2];
+    summary = DataFrame(map = repeat(multi_eq_output[3][:,3]),
+                        cₐ = repeat(multi_eq_output[3][:,2]),
+                        mean = Vector{Float64}(undef, Npar),
+                        lower = Vector{Float64}(undef, Npar),
+                        upper = Vector{Float64}(undef, Npar))
+
+    summary.map = round.(summary.map .* 100)
+
+    la_temp = Vector{Float64}(undef, Niter);
+
+    for i in 1:size(multi_eq_output[5])[2]
+        for j in 1:Niter
+            la_temp[j] = sum(multi_eq_output[5][[(Nspp*(j-1))+1:1:Nspp*j;],i])
+        end
+        summary[i, :mean] = mean(la_temp)
+        summary[i, :lower] = quantile(la_temp, 0.1)
+        summary[i, :upper] = quantile(la_temp, 0.9)
+    end
+
+    return summary
+
+end;
+
+
+##---------------------------------------------------------------
+## Variable carbon and storm freq
+##---------------------------------------------------------------
+
+"""
+TBW
+"""
+function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                           min_cₐ::Float64 = 400.0, max_cₐ::Float64 = 450.0, length_cₐ::Int64 = 10,
+                           min_P::Float64 = 8.0, max_P::Float64 = 50.0,
+                           length_P::Int64 = 3,
+                           map::Float64 = 0.3,
+                           F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                           constant_ss::Bool = false, ss::Float64 = 0.02, t::Float64 = 24.0, rh::Float64 = 30.0)
+
+    P_list = collect(range(min_P, stop = max_P, length = length_P));
+    cₐ_list = collect(range(min_cₐ, stop = max_cₐ, length = length_cₐ));
+    params = reshape(collect(Base.product(P_list, cₐ_list)), (length(P_list) * length(cₐ_list), 1));
+
+    W₀_list = Vector{Float64}(undef, length(params))
+    for i in 1:length(params)
+        W₀_list[i] = map / params[i][1]
+    end
+
+    params = hcat(W₀_list, repeat(cₐ_list, inner = length(P_list)),
+                  repeat(P_list, outer = length(cₐ_list)));
+
+    params[params[:,1] .> θ_fc, 1] .= θ_fc;
+    if constant_ss
+        params[:,1] .= params[:,2] .* ss
+    end
+
+    sd = []
+    for i in 1:Niter
+        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+    end
+
+
+    lk = ReentrantLock()
+    full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    biomass_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    transpir_results = Array{Float64}(undef, Niter, size(params)[1])
+    prog = ProgressBar(total = size(params)[1])
+    for i in 1:size(params)[1]
+        sub_results = Vector{Float64}(undef, Nspp*Niter)
+        biomass_sub = Vector{Float64}(undef, Nspp*Niter)
+
+        for j in 1:Niter
+            spd = sd[j]
+            adjust_spp_data!(spd, t, rh, params[i,2]) ## adjust spp data to account for new climate
+            ## need to recalculate τ, because T changes with params
+            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / P, b)
+            eqN = Vector(calc_eqN(spd, 1.0 / params[i,3], params[i,1], F, E, θ_fc, μ, false, false, 0.1)[:,:eqN])
+            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqN
+            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / P, F, μ, uf)
+            biomass_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqB
+            if sum(eqN .> 0.0) == 0
+                transpir_results[j,i] = 0
+            else
+                transpir_results[j,i] = params[i,1] * P
+            end
+        end
+
+        full_results[:,i] = sub_results
+        biomass_results[:,i] = biomass_sub
+        #println("completed iteration: " * string(i) * " of " * string(size(params)[1]))
+        update(prog)
+    end
+
+    return [full_results, Niter, params, Nspp, biomass_results, transpir_results]
+
+end
+
+"""
+    summarize_multi_eq_carbon_P(multi_eq_output::Vector{Any})
+
+Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium population densities
+across iterations for each precipitation regime. The standard deviation in density is also included
+in this dataframe.
+"""
+function summarize_multi_eq_carbon_P(multi_eq_output::Vector{Any})
+
+    ## initialize data
+    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
+    summary = DataFrame(P = repeat(multi_eq_output[3][:,3], outer = 4),
+                        cₐ = repeat(multi_eq_output[3][:,2], outer = 4),
+                        var = repeat(["n", "min", "max", "avg"], inner = Npar),
+                        mean = Vector{Float64}(undef, Npar*4),
+                        lower = Vector{Float64}(undef, Npar*4),
+                        upper = Vector{Float64}(undef, Npar*4))
+
+    nfeas_temp = Vector{Float64}(undef, Niter); maxfeas_temp = Vector{Float64}(undef, Niter);
+    minfeas_temp = Vector{Float64}(undef, Niter); avgfeas_temp = Vector{Float64}(undef, Niter);
+
+    for i in 1:size(multi_eq_output[1])[2]
+        for j in 1:Niter
+            tmp = findall(multi_eq_output[1][[(Nspp*(j-1))+1:1:Nspp*j;],i] .> 0.0)
+            maxfeas_temp[j] = maximum(tmp, init = 0)
+            minfeas_temp[j] = minimum(tmp, init = 0)
+            avgfeas_temp[j] = mean(tmp)
+            nfeas_temp[j] = length(tmp)
+        end
+        summary[i, :mean] = mean(nfeas_temp)
+        summary[i, :lower] = quantile(nfeas_temp, 0.1)
+        summary[i, :upper] = quantile(nfeas_temp, 0.9)
+        summary[Npar+i, :mean] = mean(minfeas_temp)
+        summary[Npar+i, :lower] = quantile(minfeas_temp, 0.1)
+        summary[Npar+i, :upper] = quantile(minfeas_temp, 0.9)
+        summary[Npar*2+i, :mean] = mean(maxfeas_temp)
+        summary[Npar*2+i, :lower] = quantile(maxfeas_temp, 0.1)
+        summary[Npar*2+i, :upper] = quantile(maxfeas_temp, 0.9)
+        summary[Npar*3+i, :mean] = mean(avgfeas_temp)
+        summary[Npar*3+i, :lower] = quantile(avgfeas_temp, 0.1)
+        summary[Npar*3+i, :upper] = quantile(avgfeas_temp, 0.9)
+    end
+
+    return summary
+
+end;
+
+"""
+    summarize_multi_eq_biomass(multi_eq_output::Vector{Any})
+
+Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium biomass
+across iterations for each precipitation regime. The standard deviation in biomass is also included
+in this dataframe.
+"""
+function summarize_multi_eq_biomass_carbon_P(multi_eq_output::Vector{Any})
+
+    ## initialize data
+    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; Npar = size(multi_eq_output[1])[2];
+    summary = DataFrame(P = repeat(multi_eq_output[3][:,3]),
+                        cₐ = repeat(multi_eq_output[3][:,2]),
+                        mean = Vector{Float64}(undef, Npar),
+                        lower = Vector{Float64}(undef, Npar),
+                        upper = Vector{Float64}(undef, Npar))
+
+    la_temp = Vector{Float64}(undef, Niter);
+
+    for i in 1:size(multi_eq_output[5])[2]
+        for j in 1:Niter
+            la_temp[j] = sum(multi_eq_output[5][[(Nspp*(j-1))+1:1:Nspp*j;],i])
+        end
+        summary[i, :mean] = mean(la_temp)
+        summary[i, :lower] = quantile(la_temp, 0.1)
+        summary[i, :upper] = quantile(la_temp, 0.9)
+    end
+
+    return summary
+
+end;
+
+
+##---------------------------------------------------------------
+## Variable temp/VPD and precip
+##---------------------------------------------------------------
+
+"""
+TBW
+"""
+function multi_eq_temp_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                             min_t::Float64 = 10.0, max_t::Float64 = 45.0, length_t::Int64 = 10,
+                             min_map::Float64 = 0.1, max_map::Float64 = 3.0,
+                             length_map::Int64 = 3,
+                             P::Float64 = 10.0,
+                             F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                             constant_ss::Bool = false, ss::Float64 = 0.02, cₐ::Float64 = 280.0, rh::Float64 = 30.0)
+
+    map_list = collect(range(min_map, stop = max_map, length = length_map));
+    t_list = collect(range(min_t, stop = max_t, length = length_t));
+    params = reshape(collect(Base.product(map_list, t_list)), (length(map_list) * length(t_list), 1));
+
+    W₀_list = Vector{Float64}(undef, length(params))
+    for i in 1:length(params)
+        W₀_list[i] = params[i][1] / P
+    end
+
+    params = hcat(W₀_list, repeat(t_list, inner = length(map_list)),
+                  repeat(map_list, outer = length(t_list)));
+
+    params[params[:,1] .> θ_fc, 1] .= θ_fc;
+    if constant_ss
+        params[:,1] .= params[:,2] .* ss
+    end
+
+    sd = []
+    for i in 1:Niter
+        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+    end
+
+    lk = ReentrantLock()
+    full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    biomass_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    transpir_results = Array{Float64}(undef, Niter, size(params)[1])
+    prog = ProgressBar(total = size(params)[1])
+    for i in 1:size(params)[1]
+        sub_results = Vector{Float64}(undef, Nspp*Niter)
+        biomass_sub = Vector{Float64}(undef, Nspp*Niter)
+
+        for j in 1:Niter
+            spd = sd[j]
+            adjust_spp_data!(spd, params[i, 2], rh, cₐ) ## adjust spp data to account for new climate
+            ## need to recalculate τ, because T changes with params
+            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / P, b)
+            eqN = Vector(calc_eqN(spd, 1.0 / P, params[i,1], F, E, θ_fc, μ, false, false, 0.1)[:,:eqN])
+            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqN
+            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / P, F, μ, uf)
+            biomass_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqB
+            if sum(eqN .> 0.0) == 0
+                transpir_results[j,i] = 0
+            else
+                transpir_results[j,i] = params[i,1] * P
+            end
+        end
+
+        full_results[:,i] = sub_results
+        biomass_results[:,i] = biomass_sub
+        #println("completed iteration: " * string(i) * " of " * string(size(params)[1]))
+        update(prog)
+    end
+
+    return [full_results, Niter, params, Nspp, biomass_results, transpir_results]
+
+end
+
+"""
+TBW
+"""
+function summarize_multi_eq_temp_map(multi_eq_output::Vector{Any})
+
+    ## initialize data
+    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
+    summary = DataFrame(map = repeat(multi_eq_output[3][:,3], outer = 4),
+                        t = repeat(multi_eq_output[3][:,2], outer = 4),
+                        var = repeat(["n", "min", "max", "avg"], inner = Npar),
+                        mean = Vector{Float64}(undef, Npar*4),
+                        lower = Vector{Float64}(undef, Npar*4),
+                        upper = Vector{Float64}(undef, Npar*4))
+
+    summary.map = round.(summary.map .* 100)
+
+    nfeas_temp = Vector{Float64}(undef, Niter); maxfeas_temp = Vector{Float64}(undef, Niter);
+    minfeas_temp = Vector{Float64}(undef, Niter); avgfeas_temp = Vector{Float64}(undef, Niter);
+
+    for i in 1:size(multi_eq_output[1])[2]
+        for j in 1:Niter
+            tmp = findall(multi_eq_output[1][[(Nspp*(j-1))+1:1:Nspp*j;],i] .> 0.0)
+            maxfeas_temp[j] = maximum(tmp, init = 0)
+            minfeas_temp[j] = minimum(tmp, init = 0)
+            avgfeas_temp[j] = mean(tmp)
+            nfeas_temp[j] = length(tmp)
+        end
+        println(nfeas_temp)
+        println(minfeas_temp)
+        println(maxfeas_temp)
+        println(avgfeas_temp)
+
+        summary[i, :mean] = mean(nfeas_temp)
+        summary[i, :lower] = quantile(skipmissing(nfeas_temp), 0.1)
+        summary[i, :upper] = quantile(skipmissing(nfeas_temp), 0.9)
+        summary[Npar+i, :mean] = mean(minfeas_temp)
+        summary[Npar+i, :lower] = quantile(skipmissing(minfeas_temp), 0.1)
+        summary[Npar+i, :upper] = quantile(skipmissing(minfeas_temp), 0.9)
+        summary[Npar*2+i, :mean] = mean(maxfeas_temp)
+        summary[Npar*2+i, :lower] = quantile(skipmissing(maxfeas_temp), 0.1)
+        summary[Npar*2+i, :upper] = quantile(skipmissing(maxfeas_temp), 0.9)
+        #summary[Npar*3+i, :mean] = mean(avgfeas_temp)
+        #summary[Npar*3+i, :lower] = quantile(skipmissing(avgfeas_temp), 0.1)
+        #summary[Npar*3+i, :upper] = quantile(skipmissing(avgfeas_temp), 0.9)
+    end
+
+    return summary
+
+end;
+
+"""
+TBW
+"""
+function summarize_multi_eq_biomass_temp_map(multi_eq_output::Vector{Any})
+
+    ## initialize data
+    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; Npar = size(multi_eq_output[1])[2];
+    summary = DataFrame(map = repeat(multi_eq_output[3][:,3]),
+                        t = repeat(multi_eq_output[3][:,2]),
+                        mean = Vector{Float64}(undef, Npar),
+                        lower = Vector{Float64}(undef, Npar),
+                        upper = Vector{Float64}(undef, Npar))
+
+    summary.map = round.(summary.map .* 100)
+
+    la_temp = Vector{Float64}(undef, Niter);
+
+    for i in 1:size(multi_eq_output[5])[2]
+        for j in 1:Niter
+            la_temp[j] = sum(multi_eq_output[5][[(Nspp*(j-1))+1:1:Nspp*j;],i])
+        end
+        summary[i, :mean] = mean(la_temp)
+        summary[i, :lower] = quantile(la_temp, 0.1)
+        summary[i, :upper] = quantile(la_temp, 0.9)
+    end
+
+    return summary
+
+end;
+
+
+##---------------------------------------------------------------
+## Variable carbon and storm freq
+##---------------------------------------------------------------
+
+"""
+TBW
+"""
+function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                           min_cₐ::Float64 = 400.0, max_cₐ::Float64 = 450.0, length_cₐ::Int64 = 10,
+                           min_P::Float64 = 8.0, max_P::Float64 = 50.0,
+                           length_P::Int64 = 3,
+                           map::Float64 = 0.3,
+                           F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                           constant_ss::Bool = false, ss::Float64 = 0.02, t::Float64 = 24.0, rh::Float64 = 30.0)
+
+    P_list = collect(range(min_P, stop = max_P, length = length_P));
+    cₐ_list = collect(range(min_cₐ, stop = max_cₐ, length = length_cₐ));
+    params = reshape(collect(Base.product(P_list, cₐ_list)), (length(P_list) * length(cₐ_list), 1));
+
+    W₀_list = Vector{Float64}(undef, length(params))
+    for i in 1:length(params)
+        W₀_list[i] = map / params[i][1]
+    end
+
+    params = hcat(W₀_list, repeat(cₐ_list, inner = length(P_list)),
+                  repeat(P_list, outer = length(cₐ_list)));
+
+    params[params[:,1] .> θ_fc, 1] .= θ_fc;
+    if constant_ss
+        params[:,1] .= params[:,2] .* ss
+    end
+
+    sd = []
+    for i in 1:Niter
+        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+    end
+
+
+    lk = ReentrantLock()
+    full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    biomass_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
+    transpir_results = Array{Float64}(undef, Niter, size(params)[1])
+    prog = ProgressBar(total = size(params)[1])
+    for i in 1:size(params)[1]
+        sub_results = Vector{Float64}(undef, Nspp*Niter)
+        biomass_sub = Vector{Float64}(undef, Nspp*Niter)
+
+        for j in 1:Niter
+            spd = sd[j]
+            adjust_spp_data!(spd, t, rh, params[i,2]) ## adjust spp data to account for new climate
+            ## need to recalculate τ, because T changes with params
+            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / P, b)
+            eqN = Vector(calc_eqN(spd, 1.0 / params[i,3], params[i,1], F, E, θ_fc, μ, false, false, 0.1)[:,:eqN])
+            sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqN
+            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / P, F, μ, uf)
+            biomass_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqB
+            if sum(eqN .> 0.0) == 0
+                transpir_results[j,i] = 0
+            else
+                transpir_results[j,i] = params[i,1] * P
+            end
+        end
+
+        full_results[:,i] = sub_results
+        biomass_results[:,i] = biomass_sub
+        #println("completed iteration: " * string(i) * " of " * string(size(params)[1]))
+        update(prog)
+    end
+
+    return [full_results, Niter, params, Nspp, biomass_results, transpir_results]
+
+end
+
+"""
+    summarize_multi_eq_carbon_P(multi_eq_output::Vector{Any})
+
+Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium population densities
+across iterations for each precipitation regime. The standard deviation in density is also included
+in this dataframe.
+"""
+function summarize_multi_eq_carbon_P(multi_eq_output::Vector{Any})
+
+    ## initialize data
+    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
+    summary = DataFrame(P = repeat(multi_eq_output[3][:,3], outer = 4),
+                        cₐ = repeat(multi_eq_output[3][:,2], outer = 4),
+                        var = repeat(["n", "min", "max", "avg"], inner = Npar),
+                        mean = Vector{Float64}(undef, Npar*4),
+                        lower = Vector{Float64}(undef, Npar*4),
+                        upper = Vector{Float64}(undef, Npar*4))
+
+    nfeas_temp = Vector{Float64}(undef, Niter); maxfeas_temp = Vector{Float64}(undef, Niter);
+    minfeas_temp = Vector{Float64}(undef, Niter); avgfeas_temp = Vector{Float64}(undef, Niter);
+
+    for i in 1:size(multi_eq_output[1])[2]
+        for j in 1:Niter
+            tmp = findall(multi_eq_output[1][[(Nspp*(j-1))+1:1:Nspp*j;],i] .> 0.0)
+            maxfeas_temp[j] = maximum(tmp, init = 0)
+            minfeas_temp[j] = minimum(tmp, init = 0)
+            avgfeas_temp[j] = mean(tmp)
+            nfeas_temp[j] = length(tmp)
+        end
+        summary[i, :mean] = mean(nfeas_temp)
+        summary[i, :lower] = quantile(nfeas_temp, 0.1)
+        summary[i, :upper] = quantile(nfeas_temp, 0.9)
+        summary[Npar+i, :mean] = mean(minfeas_temp)
+        summary[Npar+i, :lower] = quantile(minfeas_temp, 0.1)
+        summary[Npar+i, :upper] = quantile(minfeas_temp, 0.9)
+        summary[Npar*2+i, :mean] = mean(maxfeas_temp)
+        summary[Npar*2+i, :lower] = quantile(maxfeas_temp, 0.1)
+        summary[Npar*2+i, :upper] = quantile(maxfeas_temp, 0.9)
+        summary[Npar*3+i, :mean] = mean(avgfeas_temp)
+        summary[Npar*3+i, :lower] = quantile(avgfeas_temp, 0.1)
+        summary[Npar*3+i, :upper] = quantile(avgfeas_temp, 0.9)
+    end
+
+    return summary
+
+end;
+
+"""
+    summarize_multi_eq_biomass(multi_eq_output::Vector{Any})
+
+Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium biomass
+across iterations for each precipitation regime. The standard deviation in biomass is also included
+in this dataframe.
+"""
+function summarize_multi_eq_biomass_carbon_P(multi_eq_output::Vector{Any})
+
+    ## initialize data
+    Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; Npar = size(multi_eq_output[1])[2];
+    summary = DataFrame(P = repeat(multi_eq_output[3][:,3]),
+                        cₐ = repeat(multi_eq_output[3][:,2]),
+                        mean = Vector{Float64}(undef, Npar),
+                        lower = Vector{Float64}(undef, Npar),
+                        upper = Vector{Float64}(undef, Npar))
+
+    la_temp = Vector{Float64}(undef, Niter);
+
+    for i in 1:size(multi_eq_output[5])[2]
+        for j in 1:Niter
+            la_temp[j] = sum(multi_eq_output[5][[(Nspp*(j-1))+1:1:Nspp*j;],i])
+        end
+        summary[i, :mean] = mean(la_temp)
+        summary[i, :lower] = quantile(la_temp, 0.1)
+        summary[i, :upper] = quantile(la_temp, 0.9)
+    end
+
+    return summary
+
+end;
+
+
+
 ##---------------------------------------------------------------
 ## Stochastic
 ##---------------------------------------------------------------
@@ -210,7 +822,7 @@ function multi_eq_variable_map(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 =
     ## generate communities for simulations (# communities = Niter)
     sd = []
     for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.7, n_ht, 1.0 / Pmean, F, μ, b, 0.4, 0.0, 0.0001, 0.00005, 11.0))
+        sd = push!(sd, generate_spp_data(Nspp, 0.7, n_ht, 1.0 / Pmean, F, μ, b, 0.4, 0.0, 10.0, 0.00005, 11.0))
     end
 
     ## create empty arrays for results
