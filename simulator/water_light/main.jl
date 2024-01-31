@@ -743,12 +743,12 @@ quadgk(int2, 0.0, 1e4)[1]
 ## Edaphic gradients -- CALCULATIONS
 ##---------------------------------------------------------------
 
-meq = multi_eq(30, 100, 0.2, 0.05, 0.5, 40, 3, 10, 4, F, μ, 2, 0.1)
+meq = multi_eq(60, 20, 0.3, 0.01, 0.5, 40, 5, 20, 4, F, μ, 2, 0.1)
 smeq = summarize_multi_eq(meq)
 smeq.P .= round.(smeq.P, digits = 2)
 sub = smeq[smeq.var .== "n", :]
 np = plot(sub.total ./ 10.0, sub.mean, group = sub.P, line_z = sub.P, ribbon = sub.sd, fill_z = sub.P, linewidth = 3.5,
-          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.5, 5.0], ylims = [0.0, 30.0],
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.5, 5.0], ylims = [0.0, 60.0],
           xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Species richness")
 
 smeq_b = summarize_multi_eq_biomass(meq)
@@ -1038,26 +1038,85 @@ savefig("figures/gradient_freq_novar_high.pdf")
 ##---------------------------------------------------------------
 
 Nyr = 400
+μ = 0.15
+F = 200.0
+uf = 0.1
+
+
+
+
+Nyr = 900
 μ = 0.31
 F = 200.0
 uf = 0.1
 
+ρ = 0.015
+P = 3
+T = 1 / P
 Random.seed!(4)
-spp_data = generate_spp_data(4, 0.7, 1, 1.0 / P, F, μ, b, 0.4, 0.0, 10.0, 0.00005, 11.0)
-adjust_spp_data!(spp_data, 35.0, 30.0, 419.0)
-
+spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.7)
 spp_data = spp_data[1:3,:]
 spp_data.ht .= 0.5
 
-r = generate_rainfall_regime(1000, 5.0, 4.0, 1.0, 0.5, false)
-plot_rainfall_regime(r)
-length(r[1])
-
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r)
-
+## first try it out on a small community
+out = sim_water_ppa(spp_data, Nyr, nrow(spp_data), [1.0, 1.0, 1.0], μ, F, P, ρ * P, θ_fc,
+                    zeros(1,1), true, 0.4, 3.0, uf, false)
+plot_canopy_cover(out)
 plot_simulation_dynamics(out)
 
-out = multi_eq_variable_map(20, 10, 600, 0.4, 0.05, 0.4, 30, 0.0, 1.0, 4, 5.0, 4.0, 2, F, μ, false)
+calc_eqN(spp_data, 1/P, ρ, F, E, θ_fc, μ, false, false)
+calc_eq_biomass(DataFrame(spp_data), ρ, E, T, F, μ, uf)
+
+
+
+
+
+
+Random.seed!(1)
+spp_data = generate_spp_data(6, 0.8, 1, 1.0 / P, F, μ, b, 0.4, 0.0, 8.0, 0.00005, 25.0)
+spp_data.ht .= 0.5
+
+plot(spp_data.τ, spp_data.Wᵢ, seriestype = :scatter)
+
+0.01 * 20
+
+r = generate_rainfall_regime(50, 20.0, 0.000001, 0.2, 0.0, true, false)
+plot_rainfall_regime(r)
+length(r[1])
+length(r[3])
+std(r[3])
+
+out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, 0.4, μ,
+                               zeros(1,1), 0.4, 3.0)
+plot_simulation_dynamics(out)
+
+
+Nyr = 900
+μ = 0.21
+F = 200.0
+uf = 0.1
+
+map = 0.25
+P = 3
+
+0.35 / 3
+
+calc_eqN(spp_data, 1.0 / P, map / P, F, E, θ_fc, μ, false, false)
+
+out2 = sim_water_ppa(spp_data, Nyr, nrow(spp_data), 1.0, 0.21, F, P, map, θ_fc, zeros(1,1), true, 0.4, 3.0,
+                     uf, false)
+plot_simulation_dynamics(out2)
+plot_canopy_cover(out2)
+out2[2][2700,:]
+
+ns = DataFrame(spp_data[6,:])
+ns.spp .= 1
+out2 = sim_water_ppa(ns, Nyr, 1, 1.0, μ, F, P, map, θ_fc, zeros(1,1), true, 0.4, 3.0,
+                     uf, false)
+plot_simulation_dynamics(out2)
+
+
+out = multi_eq_variable_map(20, 10, 600, 0.4, 0.05, 0.4, 30, 0.0, 1.0, 4, 5.0, 0.1, 2, F, μ, false)
 out[1]
 
 smeq = summarize_multi_eq_variable_map(out)
@@ -1103,10 +1162,10 @@ bp = plot(smeq_b.cₐ, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_
           linewidth = 3.5,
           ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
-          xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Log ecosystem biomass")
+          xlab = "Atmospheric carbon concentration (ppm)", ylab = "Log ecosystem biomass")
 
 plot(np, bp, layout = [1,1])
-savefig("figures/total_gradient.pdf")
+savefig("figures/map_carbon.pdf")
 
 summarize_multi_eq_transpiration(meq)
 
@@ -1149,10 +1208,10 @@ bp = plot(smeq_b.cₐ, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P,
           linewidth = 3.5,
           ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
-          xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Log ecosystem biomass")
+          xlab = "Atmospheric carbon concentration (ppm)", ylab = "Log ecosystem biomass")
 
 plot(np, bp, layout = [1,1])
-savefig("figures/total_gradient.pdf")
+savefig("figures/freq_carbon.pdf")
 
 summarize_multi_eq_transpiration(meq)
 
@@ -1163,13 +1222,11 @@ plot(sub.mean, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P, fill_z = smeq
 savefig("figures/div_es_total.pdf")
 
 
-
 ##---------------------------------------------------------------
 ## temp/VPD
 ##---------------------------------------------------------------
 
 meq = multi_eq_temp_map(50, 5, 0.2, 10.0, 45.0, 100, 0.2, 0.4, 5, 10.0, F, μ, 2, 0.1)
-meq[1][1:50,:]
 smeq = summarize_multi_eq_temp_map(meq)
 smeq.t .= round.(smeq.t, digits = 2)
 sub = smeq[smeq.var .== "n", :]
@@ -1179,17 +1236,17 @@ np = plot(sub.t, sub.mean, group = sub.map ./ 10.0, line_z = sub.map ./ 10.0,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Average temperature (C)", ylab = "Species richness")
 
-smeq_b = summarize_multi_eq_biomass(meq)
-smeq_b.cₐ .= round.(smeq_b.cₐ, digits = 2)
-bp = plot(smeq_b.cₐ, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0,
+smeq_b = summarize_multi_eq_biomass_temp_map(meq)
+smeq_b.t .= round.(smeq_b.t, digits = 2)
+bp = plot(smeq_b.t, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0,
           fill_z = smeq_b.map ./ 10.0,
           linewidth = 3.5,
           ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
-          xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Log ecosystem biomass")
+          xlab = "Average temperature (C)", ylab = "Log ecosystem biomass")
 
 plot(np, bp, layout = [1,1])
-savefig("figures/total_gradient.pdf")
+savefig("figures/map_temp.pdf")
 
 summarize_multi_eq_transpiration(meq)
 
@@ -1198,3 +1255,30 @@ plot(sub.mean, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Species Richness", ylab = "Total biomass")
 savefig("figures/div_es_total.pdf")
+
+
+##---------------------------------------------------------------
+## temp and storm freq
+##---------------------------------------------------------------
+
+meq = multi_eq_temp_P(50, 30, 0.2, 10.0, 45.0, 100, 7.0, 15.0, 5, 0.3, F, μ, 2, 0.1)
+smeq = summarize_multi_eq_temp_P(meq)
+smeq.t .= round.(smeq.t, digits = 2)
+sub = smeq[smeq.var .== "n", :]
+np = plot(sub.t, sub.mean, group = sub.P, line_z = sub.P,
+          ribbon = (sub.mean .- sub.lower, sub.upper .- sub.mean),
+          fill_z = sub.P, linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Average temperature (C)", ylab = "Species richness")
+
+smeq_b = summarize_multi_eq_biomass_temp_P(meq)
+smeq_b.t .= round.(smeq_b.t, digits = 2)
+bp = plot(smeq_b.t, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P,
+          fill_z = smeq_b.P,
+          linewidth = 3.5,
+          ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Average temperature (C)", ylab = "Log ecosystem biomass")
+
+plot(np, bp, layout = [1,1])
+savefig("figures/map_freq.pdf")

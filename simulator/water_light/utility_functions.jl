@@ -12,7 +12,6 @@
 using DataFrames: DataFrameColumns
 ## define parameters
 
-
 """
     generate_spp_data(Nspp::Int64, Wmax::Float64 = 0.8, n_ht::Int64 = 1, T::Float64 = 40.0,
                       F::Float64 = 100.0, μ::Float64 = 0.1,
@@ -31,23 +30,28 @@ option to add scatter around this tradeoff by setting `tradeoff_sd` to a value g
 strategy of each species is also drawn from a uniform distribution. The number of height strategies is specified
 by the user in `n_ht.`
 
-
 """
 function generate_spp_data(Nspp::Int64, Wmax::Float64 = 0.8, n_ht::Int64 = 1, T::Float64 = 40.0,
                            F::Float64 = 100.0, μ::Float64 = 0.1,
                            b::Float64 = 2.5, tradeoff_exp::Float64 = 0.4,
                            tradeoff_sd::Float64 = 0.0,
-                           Xmax::Float64 = 10.0, C₂::Float64 = 0.001,
+                           Xmax::Float64 = 8.0, C₂::Float64 = 0.001,
                            spread_multiplier::Float64 = 25.0, min_ht::Float64 = 0.3,
-                           max_ht::Float64 = 0.7, aₘ::Float64 = 0.03, γ::Float64 = 0.5,
+                           max_ht::Float64 = 0.7, uniform_C₁::Bool = true,
+                           aₘ::Float64 = 0.03, γ::Float64 = 0.5,
                            rᵣ::Float64 = 0.01, cₓ::Float64 = 1.5)
 
     ## generate a list of species with X (wood density) drawn from a uniform distribution
-    X = rand(Uniform(0.01, Xmax), Nspp)
+    X = rand(Uniform(0.1, Xmax), Nspp)
     spp_data = DataFrame(X = X,
                          aₘ = repeat([aₘ], Nspp),
                          C₁ = (aₘ - (γ * rᵣ)) ./ (cₓ .* X),
                          C₂ = repeat([C₂], Nspp))
+    if uniform_C₁
+        spp_data.C₁ = rand(Uniform(0.0000005, 0.0001), Nspp) .* 365.0
+        spp_data.C₂ = spp_data.C₂ .* 365.0
+    end
+
     ## calculate the break-even time of each species
     spp_data.τ = broadcast(calc_τ, spp_data.C₁, spp_data.C₂, F, μ, T, b)
     ## calculate the critical water content for each species from an exponential tradeoff
@@ -58,7 +62,7 @@ function generate_spp_data(Nspp::Int64, Wmax::Float64 = 0.8, n_ht::Int64 = 1, T:
     spp_data = sort(spp_data, :Wᵢ, rev = true)
     ## ensure characteristics meet threshold requirements
     spp_data.Wᵢ = replace(x -> isless(x, 0) ? 1e-4 : x, spp_data.Wᵢ)
-    spp_data.Wᵢ = replace(x -> isless(Wmax, x) ? Wmax : x, spp_data.Wᵢ)
+     spp_data.Wᵢ = replace(x -> isless(Wmax, x) ? Wmax : x, spp_data.Wᵢ)
     ## create column for spp names
     spp_data.spp = Int[1:1:Nspp;];
 

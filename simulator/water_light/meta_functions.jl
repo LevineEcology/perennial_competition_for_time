@@ -55,13 +55,13 @@ function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+                                         3.0, 0.4, 0.0, 8.0, 0.00005, 11.0, 0.3, 0.6))
     end
 
     full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     biomass_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     transpir_results = Array{Float64}(undef, Niter, size(params)[1])
-    Threads.@threads for i in 1:size(params)[1]
+    for i in 1:size(params)[1]
         sub_results = Vector{Float64}(undef, Nspp*Niter)
         biomass_sub = Vector{Float64}(undef, Nspp*Niter)
 
@@ -226,7 +226,7 @@ function multi_eq_carbon_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6, false))
     end
 
     full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
@@ -374,7 +374,7 @@ function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6, false))
     end
 
 
@@ -528,7 +528,7 @@ function multi_eq_temp_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6, false))
     end
 
     lk = ReentrantLock()
@@ -648,31 +648,31 @@ end;
 
 
 ##---------------------------------------------------------------
-## Variable carbon and storm freq
+## Variable temp and storm freq
 ##---------------------------------------------------------------
 
 """
 TBW
 """
-function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
-                           min_cₐ::Float64 = 400.0, max_cₐ::Float64 = 450.0, length_cₐ::Int64 = 10,
+function multi_eq_temp_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                           min_t::Float64 = 10.0, max_t::Float64 = 45.0, length_t::Int64 = 10,
                            min_P::Float64 = 8.0, max_P::Float64 = 50.0,
                            length_P::Int64 = 3,
                            map::Float64 = 0.3,
                            F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
-                           constant_ss::Bool = false, ss::Float64 = 0.02, t::Float64 = 24.0, rh::Float64 = 30.0)
+                           constant_ss::Bool = false, ss::Float64 = 0.02, cₐ::Float64 = 280.0, rh::Float64 = 30.0)
 
     P_list = collect(range(min_P, stop = max_P, length = length_P));
-    cₐ_list = collect(range(min_cₐ, stop = max_cₐ, length = length_cₐ));
-    params = reshape(collect(Base.product(P_list, cₐ_list)), (length(P_list) * length(cₐ_list), 1));
+    t_list = collect(range(min_t, stop = max_t, length = length_t));
+    params = reshape(collect(Base.product(P_list, t_list)), (length(P_list) * length(t_list), 1));
 
     W₀_list = Vector{Float64}(undef, length(params))
     for i in 1:length(params)
         W₀_list[i] = map / params[i][1]
     end
 
-    params = hcat(W₀_list, repeat(cₐ_list, inner = length(P_list)),
-                  repeat(P_list, outer = length(cₐ_list)));
+    params = hcat(W₀_list, repeat(t_list, inner = length(P_list)),
+                  repeat(P_list, outer = length(t_list)));
 
     params[params[:,1] .> θ_fc, 1] .= θ_fc;
     if constant_ss
@@ -682,7 +682,7 @@ function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6))
+                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6, false))
     end
 
 
@@ -697,7 +697,7 @@ function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
 
         for j in 1:Niter
             spd = sd[j]
-            adjust_spp_data!(spd, t, rh, params[i,2]) ## adjust spp data to account for new climate
+            adjust_spp_data!(spd, params[i,2], rh, cₐ) ## adjust spp data to account for new climate
             ## need to recalculate τ, because T changes with params
             spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / P, b)
             eqN = Vector(calc_eqN(spd, 1.0 / params[i,3], params[i,1], F, E, θ_fc, μ, false, false, 0.1)[:,:eqN])
@@ -728,12 +728,12 @@ Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium po
 across iterations for each precipitation regime. The standard deviation in density is also included
 in this dataframe.
 """
-function summarize_multi_eq_carbon_P(multi_eq_output::Vector{Any})
+function summarize_multi_eq_temp_P(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
     summary = DataFrame(P = repeat(multi_eq_output[3][:,3], outer = 4),
-                        cₐ = repeat(multi_eq_output[3][:,2], outer = 4),
+                        t = repeat(multi_eq_output[3][:,2], outer = 4),
                         var = repeat(["n", "min", "max", "avg"], inner = Npar),
                         mean = Vector{Float64}(undef, Npar*4),
                         lower = Vector{Float64}(undef, Npar*4),
@@ -760,8 +760,8 @@ function summarize_multi_eq_carbon_P(multi_eq_output::Vector{Any})
         summary[Npar*2+i, :lower] = quantile(maxfeas_temp, 0.1)
         summary[Npar*2+i, :upper] = quantile(maxfeas_temp, 0.9)
         summary[Npar*3+i, :mean] = mean(avgfeas_temp)
-        summary[Npar*3+i, :lower] = quantile(avgfeas_temp, 0.1)
-        summary[Npar*3+i, :upper] = quantile(avgfeas_temp, 0.9)
+        #summary[Npar*3+i, :lower] = quantile(avgfeas_temp, 0.1)
+        #summary[Npar*3+i, :upper] = quantile(avgfeas_temp, 0.9)
     end
 
     return summary
@@ -775,12 +775,12 @@ Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium bi
 across iterations for each precipitation regime. The standard deviation in biomass is also included
 in this dataframe.
 """
-function summarize_multi_eq_biomass_carbon_P(multi_eq_output::Vector{Any})
+function summarize_multi_eq_biomass_temp_P(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; Npar = size(multi_eq_output[1])[2];
     summary = DataFrame(P = repeat(multi_eq_output[3][:,3]),
-                        cₐ = repeat(multi_eq_output[3][:,2]),
+                        t = repeat(multi_eq_output[3][:,2]),
                         mean = Vector{Float64}(undef, Npar),
                         lower = Vector{Float64}(undef, Npar),
                         upper = Vector{Float64}(undef, Npar))
@@ -822,7 +822,8 @@ function multi_eq_variable_map(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 =
     ## generate communities for simulations (# communities = Niter)
     sd = []
     for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.7, n_ht, 1.0 / Pmean, F, μ, b, 0.4, 0.0, 10.0, 0.00005, 11.0))
+        sd = push!(sd, generate_spp_data(Nspp, 0.7, n_ht, 1.0 / Pmean, F, μ, b, 0.4, 0.0, 8.0, 0.00005,
+                                         11.0, 0.3, 0.6, false))
     end
 
     ## create empty arrays for results
@@ -880,7 +881,7 @@ end
 
 
 
-
+### NEEDS TO BE EDITED
 function multi_eq_variable_P(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
                              minPmean::Int64 = 0.1 * 15, maxPmean::Int64 = 0.6 * 15,
                              lengthPmean::Int64 = 10,

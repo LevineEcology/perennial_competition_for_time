@@ -1,4 +1,4 @@
-using DataFrames: DataFrameColumns
+using DataFrames: DataFrameColumns, PrettyTablesConf
 ## define parameters
 
 
@@ -327,7 +327,6 @@ end;
                        Tvec::Vector{Float64}, understory_factor::Float64, θ_fc::Float64, b::Float64)
 
 Iterates through years of a simulation and returns results. Called by simulation wrappers.
-
 """
 function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
                            biomass_data::DataFrame, biomass_dynamics::DataFrame,
@@ -484,8 +483,6 @@ function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
 
         for yr in 1:Nyr
 
-            #println(zstar)
-
             ## calculate canopy closure height
             zstar = calc_zstar(biomass_data, height_data, n_data)
             zstar_data[yr] = zstar
@@ -549,8 +546,6 @@ function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
 
 end;
 
-LinRange(0, 1, 11)
-LinRange(0, 2, 11)
 
 """
     sim_water_ppa(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
@@ -912,13 +907,13 @@ function sim_ppa(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
     end
 
     iterate_ppa(Nyr, spp_data,
-                      biomass_data, biomass_dynamics,
-                      n_data, n_dynamics,
-                      r_data, zstar_data,
-                      height_data, canopy_dynamics,
-                      g, v, Nspp, μ, F, T, mt, understory_factor,
-                      pb, b, perturb, Int(round(perturb_frac * Nyr)),
-                      perturb_factor)
+                biomass_data, biomass_dynamics,
+                n_data, n_dynamics,
+                r_data, zstar_data,
+                height_data, canopy_dynamics,
+                g, v, Nspp, μ, F, T, mt, understory_factor,
+                pb, b, perturb, Int(round(perturb_frac * Nyr)),
+                perturb_factor)
 
 
 end;
@@ -954,8 +949,9 @@ function generate_intervals(Pmean::Int64, cluster::Bool = false)
             if rs > 1.0
                 inter = inter[1:i]
                 inter[i] = 1.0 - sum(inter[1:i-1])
+                inter = inter[1:i]
+                break
             end
-            break
         end
     end
     if cluster
@@ -974,29 +970,37 @@ in `sim_water_ppa_stochastic()`.
 
 """
 function generate_rainfall_regime(Nyr::Int64, Pmean::Float64, Pdisp::Float64,
-                                  map_mean::Float64, map_sd::Float64, cluster::Bool = false)
+                                  map_mean::Float64, map_sd::Float64,
+                                  constant_P::Bool = false, cluster::Bool = false)
 
-    ## reparameterize for draws from negative binomial distribution
-    var = Pmean + 1 / Pdisp * Pmean ^ 2
-    p = (var - Pmean) / var
+    if constant_P
+        Preal = Int.(repeat([Pmean], Nyr))
+        Tlist = repeat([1.0 / Pmean], Nyr * Int.(Pmean))
+    else
 
-    ## draw storm frequencies from negative binomial distribution
-    Plist = rand(NegativeBinomial(Pdisp, 1-p), Nyr)
-    Plist[Plist .== 0] .= 1.0 ## don't allow 0 values
+        ## reparameterize for draws from negative binomial distribution
+        var = Pmean + 1 / Pdisp * Pmean ^ 2
+        p = (var - Pmean) / var
+
+        ## draw storm frequencies from negative binomial distribution
+        Plist = rand(NegativeBinomial(Pdisp, 1-p), Nyr)
+        Plist[Plist .== 0] .= 1.0 ## don't allow 0 values
+
+        ## true values of P are determined after calling generate_intervals()
+        Preal = Float64[]
+        Tlist = Int64[]
+        for yr in 1:Nyr
+            new_int = generate_intervals(Plist[yr]) ## get random interstorm interval lengths
+            Tlist = vcat(Tlist, new_int) ## add to full list of interval lengths
+            Preal = vcat(Preal, length(new_int)) ## record true P value as length of new_int
+        end
+        Preal = Int.(Preal) ## convert to integer
+
+    end
 
     ## draw precipitation totals from (truncated) normal distribution
     precip_list = rand(Normal(map_mean, map_sd), Nyr)
     precip_list[precip_list .< 0.0] .= 0.0
-
-    ## true values of P are determined after calling generate_intervals()
-    Preal = Float64[]
-    Tlist = Int64[]
-    for yr in 1:Nyr
-        new_int = generate_intervals(Plist[yr]) ## get random interstorm interval lengths
-        Tlist = vcat(Tlist, new_int) ## add to full list of interval lengths
-        Preal = vcat(Preal, length(new_int)) ## record true P value as length of new_int
-    end
-    Preal = Int.(Preal) ## convert to integer
 
     ## now calculate storm sizes from yearly precip totals and interval lengths
     ss_list = Vector{Float64}(undef, length(Tlist))
@@ -1010,14 +1014,6 @@ function generate_rainfall_regime(Nyr::Int64, Pmean::Float64, Pdisp::Float64,
     return [ss_list, Tlist, Preal]
 
 end
-
-Nyr = 10
-Pmean = 40.0
-Pdisp = 1.0
-map_mean = 4.0
-map_var = 1.5
-
-r = generate_rainfall_regime(10, 40.0, 1.0, 4.0, 1.5)
 
 ####### SIMULATION FUNCTIONS ########
 
@@ -1096,10 +1092,9 @@ function sim_water_ppa_stochastic(spp_data::DataFrame, Nyr::Int64, Nspp::Int64, 
                       g, t, v, Nspp, μ, F, mt,
                       rainfall_regime[1],
                       rainfall_regime[2], understory_factor, θ_fc,
-                      pb, w_init, b, false, Nyr,
-                      1.0)
+                      pb, w_init, b, false)
 
-end
+end;
 
 
 
