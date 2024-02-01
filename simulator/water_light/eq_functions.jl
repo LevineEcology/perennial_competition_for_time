@@ -186,17 +186,17 @@ function feas(sd::DataFrame, T::Float64 = 0.1, ρ::Float64 = 0.04,
     ## first test for feasibility in water-only scenario
     infeas = μ_feas(sd, F, μ, analytical)
     first_feas = minimum(findall(sd.Wᵢ .< W₀), init = 9999)
-    if first_feas == 9999 || length(infeas) == 0 || maximum(infeas) < first_feas ## cases where no species are feasible
+    if first_feas == 9999 ## case where no species are feasible
         return []
     else
 
         ## create dataframe of species characteristics (including w₀) for convex hull algorithm
         points = DataFrame(τ = vcat(sd.τ[infeas], 0.0), Wᵢ = vcat(sd.Wᵢ[infeas], W₀),
                            spp = vcat(sd.spp[infeas], 0))
-        ## remove all infeasible species from points dataframe
-        points = points[first_feas:nrow(points), :]
         sort!(points, :Wᵢ, rev = true) ## sort in reverse drought tolerance order
 
+        ## remove all infeasible species from points dataframe
+        points = points[first_feas:nrow(points), :]
 
         if nrow(points) == 1 ## case where all species infeasible
             return []
@@ -284,6 +284,8 @@ function feas(sd::DataFrame, T::Float64 = 0.1, ρ::Float64 = 0.04,
         end
 
     end
+
+    println(coex)
 
 end;
 

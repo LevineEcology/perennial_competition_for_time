@@ -1,4 +1,4 @@
-using DataFrames: DataFrameColumns, PrettyTablesConf
+using DataFrames: DataFrameColumns
 ## define parameters
 
 
@@ -327,6 +327,7 @@ end;
                        Tvec::Vector{Float64}, understory_factor::Float64, θ_fc::Float64, b::Float64)
 
 Iterates through years of a simulation and returns results. Called by simulation wrappers.
+
 """
 function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
                            biomass_data::DataFrame, biomass_dynamics::DataFrame,
@@ -483,6 +484,8 @@ function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
 
         for yr in 1:Nyr
 
+            #println(zstar)
+
             ## calculate canopy closure height
             zstar = calc_zstar(biomass_data, height_data, n_data)
             zstar_data[yr] = zstar
@@ -545,7 +548,6 @@ function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
             w_in_data, height_data, canopy_dynamics, zstar_data, g, t, biomass_dynamics]
 
 end;
-
 
 """
     sim_water_ppa(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
@@ -907,13 +909,13 @@ function sim_ppa(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
     end
 
     iterate_ppa(Nyr, spp_data,
-                biomass_data, biomass_dynamics,
-                n_data, n_dynamics,
-                r_data, zstar_data,
-                height_data, canopy_dynamics,
-                g, v, Nspp, μ, F, T, mt, understory_factor,
-                pb, b, perturb, Int(round(perturb_frac * Nyr)),
-                perturb_factor)
+                      biomass_data, biomass_dynamics,
+                      n_data, n_dynamics,
+                      r_data, zstar_data,
+                      height_data, canopy_dynamics,
+                      g, v, Nspp, μ, F, T, mt, understory_factor,
+                      pb, b, perturb, Int(round(perturb_frac * Nyr)),
+                      perturb_factor)
 
 
 end;
@@ -1092,9 +1094,10 @@ function sim_water_ppa_stochastic(spp_data::DataFrame, Nyr::Int64, Nspp::Int64, 
                       g, t, v, Nspp, μ, F, mt,
                       rainfall_regime[1],
                       rainfall_regime[2], understory_factor, θ_fc,
-                      pb, w_init, b, false)
+                      pb, w_init, b, false, Nyr,
+                      1.0)
 
-end;
+end
 
 
 

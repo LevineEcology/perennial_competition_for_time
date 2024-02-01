@@ -12,7 +12,7 @@
 using Plots, QuadGK, DataFrames, Distributions,
     SpecialFunctions, NLsolve, AutoPreallocation,
     Profile, PProf, PlotThemes, CSV, GeoArrays, Random, Debugger,
-    ForwardDiff, Polylogarithms, ProgressBars, Roots, Distributed
+    ForwardDiff, Polylogarithms, ProgressBars, Roots
 
 ## simulation parameters
 Nspp::Int64 = 10; Nyr::Int64 = 1000; Ninit::Float64 = 1.0;
@@ -36,6 +36,7 @@ include("meta_functions.jl")
 ## set plotting variables
 theme(:default)
 my_cgrad = cgrad(:roma)
+
 ##---------------------------------------------------------------
 ## Does single-species invasion criteria work?
 ##---------------------------------------------------------------
@@ -44,7 +45,7 @@ function calc_ir(g1, F, μ)
     (2 * F * g1^2) / (μ^3)
 end
 
-spp_data = generate_spp_data(1, 0.6, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 10.0, 0.00005)
+spp_data = generate_spp_data(1, 0.6, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
 
 ## should successfully invade
 μ = 0.1
@@ -89,7 +90,7 @@ Random.seed!(3)
 spp_data = generate_spp_data(Nspp = 1, Wmax = 0.6, n_ht = 1, T = 1.0 / P,
                              F = F, μ = μ, b = 3.0, tradeoff_exp = 0.5,
                              tradeoff_sd = 0.0,
-                             C₁max = 10.0, C₂max = 0.00005);
+                             C₁max = 0.0001, C₂max = 0.00005);
 
 out = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, 0.5, θ_fc,
                     zeros(1,1), true, 0.4, 3.0, 0.1)
@@ -166,7 +167,7 @@ end
 spp_data = generate_spp_data(Nspp = 1, Wmax = 0.6, n_ht = 1,
                              T = 1.0 / P, F = F, μ = μ, b = 3.0,
                              tradeoff_exp = 0.5, tradeoff_sd = 0.0,
-                             C₁max = 10.0, C₂max = 0.00005)
+                             C₁max = 0.0001, C₂max = 0.00005)
 spp_data.ht .= 0.5
 
 F = 100.0
@@ -220,7 +221,7 @@ var = Vector{Float64}(undef, length(uf_list))
 ind = Vector{Float64}(undef, length(uf_list))
 
 spp_data = generate_spp_data(1, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
-spp_data.ht .= 0.5points
+spp_data.ht .= 0.5
 for i in 1:length(uf_list)
     ind[i] = stability_crit(spp_data, spp_data.C₁[1], uf_list[i], P, μ, F)
     out = sim_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, 0.1, zeros(1,1), true, 3.0, uf_list[i], false)
@@ -228,7 +229,7 @@ for i in 1:length(uf_list)
 end
 
 plot(uf_list, var, seriestype = :scatter)
-plot(ind, var, series :scatter)
+plot(ind, var, seriestype = :scatter)
 
 ## Though I feel like I understand which parameters generate instability,
 ## I am not satisfied because I cannot get the threshold to work. Not sure
@@ -249,7 +250,7 @@ uf = 0.1
 μ = 0.1
 
 Random.seed!(1)
-spp_data = generate_spp_data(2, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 10.0, 0.00005)
+spp_data = generate_spp_data(2, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
 
 calc_xstar(spp_data[1,:C₁], uf, P, μ, F)
 calc_xstar(spp_data[2,:C₁], uf, P, μ, F)
@@ -272,7 +273,7 @@ uf = 0.1
 mean_p = 2.0
 
 Random.seed!(4) ## change seed to get iteration where both species have positive zstar
-spp_data = generate_spp_data(2, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 10.0, 0.00005)
+spp_data = generate_spp_data(2, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
 mono_zstar(spp_data, F, P, μ, mean_p, θ_fc, Nyr)
 ## species 1 should win
 
@@ -289,7 +290,7 @@ plot_canopy_cover(out)
 
 ## try for 5 species
 Random.seed!(1)
-spp_data = generate_spp_data(5, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 10.0, 0.00005)
+spp_data = generate_spp_data(5, 0.6, 1, 1.0 / P, F, μ, 3.0, 0.5, 0.0, 0.0001, 0.00005)
 
 F = 100.0
 μ = 0.1
@@ -320,7 +321,7 @@ P = 10
 μ = 0.11
 uf = 0.1
 Random.seed!(4)
-spp_data = generate_spp_data(4, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 11.0)
+spp_data = generate_spp_data(4, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 11.0)
 spp_data.ht .= 0.5
 
 out_02 = sim_water_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, P, 0.2, θ_fc, zeros(1,1), true, 0.4, 3.0, uf, false)
@@ -356,7 +357,7 @@ savefig("figures/sequence.pdf")
 
 
 
-spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0)
+spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0)
 
 p1 = plot(spp_data.Wᵢ[3:12], spp_data.C₁[3:12], marker_z = spp_data.C₁[3:12], xflip = true, seriestype = :scatter, legend = :none,
           markersize = 8, seriescolor = my_cgrad, frame = :box)
@@ -417,7 +418,7 @@ savefig(p2, "~/Documents/Science/application_materials/f4.pdf")
 
 
 uf = 0.1
-spp_data = generate_spp_data(3, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0)
+spp_data = generate_spp_data(3, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0)
 
 plot(spp_data.τ, spp_data.Wᵢ, marker_z = spp_data.C₁, seriestype = :scatter, legend = :none,
           markersize = 8, seriescolor = my_cgrad, frame = :box)
@@ -492,7 +493,7 @@ uf = 0.1
 P = 3
 T = 1 / P
 Random.seed!(4)
-spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.7)
+spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.7)
 spp_data = spp_data[1:3,:]
 spp_data.ht .= 0.5
 
@@ -520,7 +521,7 @@ uf = 0.1
 P = 3
 T = 1 / P
 Random.seed!(4)
-spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.7)
+spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.7)
 spp_data = spp_data[1:5,:]
 spp_data.ht .= 0.5
 
@@ -581,7 +582,7 @@ function calc_T_cx(spp_data, E, ρ)
 end
 
 
-spp_data = generate_spp_data(10, 0.7, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 11.0)
+spp_data = generate_spp_data(10, 0.7, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 11.0)
 spp_data.ht[[1,3,5,7,9]] .= 0.2
 spp_data.ht[[2,4,6,8,10]] .= 0.8
 
@@ -631,11 +632,11 @@ F = 200.0
 uf = 0.1
 
 Random.seed!(4)
-spp_data = generate_spp_data(4, 0.7, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 11.0)
+spp_data = generate_spp_data(4, 0.7, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 11.0)
 spp_data = spp_data[1:3,:]
 spp_data.ht .= 0.5
 
-#spp_data = generate_spp_data(2, 0.6, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 20.0)
+#spp_data = generate_spp_data(2, 0.6, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 20.0)
 #spp_data.ht .= 0.5
 
 out = sim_water_ppa(spp_data, Nyr, nrow(spp_data), [100.0, 100.0, 100.0], μ, F, P, 0.43, θ_fc,
@@ -743,12 +744,12 @@ quadgk(int2, 0.0, 1e4)[1]
 ## Edaphic gradients -- CALCULATIONS
 ##---------------------------------------------------------------
 
-meq = multi_eq(60, 20, 0.3, 0.01, 0.5, 40, 5, 20, 4, F, μ, 2, 0.1)
+meq = multi_eq(30, 100, 0.2, 0.05, 0.5, 40, 3, 10, 4, F, μ, 2, 0.1)
 smeq = summarize_multi_eq(meq)
 smeq.P .= round.(smeq.P, digits = 2)
 sub = smeq[smeq.var .== "n", :]
 np = plot(sub.total ./ 10.0, sub.mean, group = sub.P, line_z = sub.P, ribbon = sub.sd, fill_z = sub.P, linewidth = 3.5,
-          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.5, 5.0], ylims = [0.0, 60.0],
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.5, 5.0], ylims = [0.0, 30.0],
           xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Species richness")
 
 smeq_b = summarize_multi_eq_biomass(meq)
@@ -827,12 +828,13 @@ bp = plot(smeq_b[40:-1:1, :P], smeq_b.mean .* 5, group = smeq_b.total, line_z = 
 plot(np, bp, layout = [1,1])
 savefig("~/Documents/Science/application_materials/f2.pdf")
 
-spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.0001, 11.0)
+
+
+spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.0001, 11.0)
 calc_eqN(spp_data, 0.01, 0.03)
 calc_eq_biomass(spp_data, 0.03, E, 10, F, μ, 0.1, 0.4)
 T = 0.1
 ρ = 0.5
-
 
 
 ##---------------------------------------------------------------
@@ -840,7 +842,7 @@ T = 0.1
 ##---------------------------------------------------------------
 
 # first try with 2 different light strategies
-spp_data = generate_spp_data(20, 0.6, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 10.0, 0.00005, 20.0)
+spp_data = generate_spp_data(20, 0.6, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.00005, 20.0)
 spp_data[[1:2:nrow(spp_data);], :ht] .= 0.5
 spp_data[[2:2:nrow(spp_data);], :ht] .= 0.65
 spp_data
@@ -1038,85 +1040,23 @@ savefig("figures/gradient_freq_novar_high.pdf")
 ##---------------------------------------------------------------
 
 Nyr = 400
-μ = 0.15
-F = 200.0
-uf = 0.1
-
-
-
-
-Nyr = 900
 μ = 0.31
 F = 200.0
 uf = 0.1
 
-ρ = 0.015
-P = 3
-T = 1 / P
 Random.seed!(4)
-spp_data = generate_spp_data(10, 0.7, 1, 1.0 / P, F, μ, 3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.7)
-spp_data = spp_data[1:3,:]
-spp_data.ht .= 0.5
+spp_data = generate_spp_data(4, 0.7, 1, 1.0 / P, F, μ, b, 0.4, 0.0, 0.0001, 0.00005, 11.0)
 
-## first try it out on a small community
-out = sim_water_ppa(spp_data, Nyr, nrow(spp_data), [1.0, 1.0, 1.0], μ, F, P, ρ * P, θ_fc,
-                    zeros(1,1), true, 0.4, 3.0, uf, false)
-plot_canopy_cover(out)
-plot_simulation_dynamics(out)
-
-calc_eqN(spp_data, 1/P, ρ, F, E, θ_fc, μ, false, false)
-calc_eq_biomass(DataFrame(spp_data), ρ, E, T, F, μ, uf)
-
-
-
-
-
-
-Random.seed!(1)
-spp_data = generate_spp_data(6, 0.8, 1, 1.0 / P, F, μ, b, 0.4, 0.0, 8.0, 0.00005, 25.0)
-spp_data.ht .= 0.5
-
-plot(spp_data.τ, spp_data.Wᵢ, seriestype = :scatter)
-
-0.01 * 20
-
-r = generate_rainfall_regime(50, 20.0, 0.000001, 0.2, 0.0, true, false)
+r = generate_rainfall_regime(1000, 5.0, 4.0, 1.0, 0.5, false)
 plot_rainfall_regime(r)
 length(r[1])
-length(r[3])
-std(r[3])
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, 0.4, μ,
-                               zeros(1,1), 0.4, 3.0)
+out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r)
+
 plot_simulation_dynamics(out)
 
 
-Nyr = 900
-μ = 0.21
-F = 200.0
-uf = 0.1
-
-map = 0.25
-P = 3
-
-0.35 / 3
-
-calc_eqN(spp_data, 1.0 / P, map / P, F, E, θ_fc, μ, false, false)
-
-out2 = sim_water_ppa(spp_data, Nyr, nrow(spp_data), 1.0, 0.21, F, P, map, θ_fc, zeros(1,1), true, 0.4, 3.0,
-                     uf, false)
-plot_simulation_dynamics(out2)
-plot_canopy_cover(out2)
-out2[2][2700,:]
-
-ns = DataFrame(spp_data[6,:])
-ns.spp .= 1
-out2 = sim_water_ppa(ns, Nyr, 1, 1.0, μ, F, P, map, θ_fc, zeros(1,1), true, 0.4, 3.0,
-                     uf, false)
-plot_simulation_dynamics(out2)
-
-
-out = multi_eq_variable_map(20, 10, 600, 0.4, 0.05, 0.4, 30, 0.0, 1.0, 4, 5.0, 0.1, 2, F, μ, false)
+out = multi_eq_variable_map(20, 10, 400, 0.4, 0.05, 0.4, 10, 0.0, 1.0, 3, 5.0, 4.0, 2, F, μ, false)
 out[1]
 
 smeq = summarize_multi_eq_variable_map(out)
@@ -1124,8 +1064,6 @@ sub = smeq[smeq.var .== "n", :]
 np = plot(sub.mapmean, sub.mean, group = sub.mapsd, line_z = sub.mapsd, ribbon = sub.sd, fill_z = sub.mapsd, linewidth = 3.5,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Storm frequency (storms per month)", ylab = "Species richness")
-
-
 
 ##---------------------------------------------------------------
 ## Alternative forcings

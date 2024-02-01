@@ -55,13 +55,13 @@ function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 8.0, 0.00005, 11.0, 0.3, 0.6))
+                                         3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6))
     end
 
     full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     biomass_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     transpir_results = Array{Float64}(undef, Niter, size(params)[1])
-    for i in 1:size(params)[1]
+    Threads.@threads for i in 1:size(params)[1]
         sub_results = Vector{Float64}(undef, Nspp*Niter)
         biomass_sub = Vector{Float64}(undef, Nspp*Niter)
 
@@ -226,7 +226,7 @@ function multi_eq_carbon_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6, false))
+                                         3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6, true))
     end
 
     full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
@@ -374,7 +374,7 @@ function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6, false))
+                                         3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6, true))
     end
 
 
@@ -528,7 +528,7 @@ function multi_eq_temp_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6, false))
+                                         3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6, true))
     end
 
     lk = ReentrantLock()
@@ -682,7 +682,7 @@ function multi_eq_temp_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     sd = []
     for i in 1:Niter
         sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
-                                         3.0, 0.4, 0.0, 10.0, 0.00005, 11.0, 0.3, 0.6, false))
+                                         3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6, true))
     end
 
 
@@ -802,6 +802,9 @@ end;
 
 
 
+
+
+
 ##---------------------------------------------------------------
 ## Stochastic
 ##---------------------------------------------------------------
@@ -822,8 +825,7 @@ function multi_eq_variable_map(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 =
     ## generate communities for simulations (# communities = Niter)
     sd = []
     for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.7, n_ht, 1.0 / Pmean, F, μ, b, 0.4, 0.0, 8.0, 0.00005,
-                                         11.0, 0.3, 0.6, false))
+        sd = push!(sd, generate_spp_data(Nspp, 0.7, n_ht, 1.0 / Pmean, F, μ, b, 0.4, 0.0, 0.0001, 0.00005, 11.0))
     end
 
     ## create empty arrays for results
@@ -881,7 +883,7 @@ end
 
 
 
-### NEEDS TO BE EDITED
+
 function multi_eq_variable_P(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
                              minPmean::Int64 = 0.1 * 15, maxPmean::Int64 = 0.6 * 15,
                              lengthPmean::Int64 = 10,
