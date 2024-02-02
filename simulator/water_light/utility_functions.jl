@@ -208,10 +208,18 @@ function plot_simulation_dynamics(results, save::Bool = false, filename = "")
     pdata = stack(results[2])
     pdata.variable = parse.(Int64, pdata.variable)
 
-    p = plot(pdata.rowkey, pdata.value, group = pdata.variable, line_z = pdata.variable,
-             ylim = [0, round(maximum(pdata.value))+1.0], xlim = [0, maximum(pdata.rowkey)],
+    t = zeros(length(results[13]))
+    t[1] = results[13][1]
+    for i in 2:length(results[13])
+        t[i] = t[i-1] + results[13][i]
+    end
+    t = repeat(t, outer = length(unique(pdata.variable)))
+
+    p = plot(t, pdata.value, group = pdata.variable, line_z = pdata.variable,
+             ylim = [0, round(maximum(pdata.value))+1.0], xlim = [0, maximum(t)],
              seriescolor = my_cgrad, seriestype = :line,
-             legend = :bottomright, frame = :box, grid = false, linewidth = 2.5)
+             legend = :bottomright, frame = :box, grid = false, linewidth = 2.5,
+             xlab = "Time (years)", ylab = "Population density")
 
     pdata.value
 
@@ -288,7 +296,7 @@ end
     plot_rainfall_regime(rainfall_regime)
 
 """
-function plot_rainfall_regime(rainfall_regime)
+function plot_rainfall_regime(rainfall_regime, window = missing)
 
     t = Vector{Float64}(undef, length(rainfall_regime[1]))
     t[1] = rainfall_regime[2][1]
@@ -298,8 +306,15 @@ function plot_rainfall_regime(rainfall_regime)
 
     w = copy(rainfall_regime[1])
 
+    if !ismissing(window)
+        t = t[window]
+        w = w[window]
+    end
+
     p = plot(t, w, seriestype = :scatter, color = :black, markersize = 0,
-             frame = :box, legend = :none)
+             frame = :box, legend = :none, grid = false, xlim = [0.0, maximum(t)],
+             ylim = [0.0, maximum(w)+(0.1*maximum(w))],
+             xlab = "Time (years)", ylab = "Storm size")
 
     for i in 1:length(t)
        p = plot!(vcat(t[i], t[i]), vcat(0.0, w[i]), color = :black, linewidth = 2)

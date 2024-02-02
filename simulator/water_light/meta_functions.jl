@@ -839,7 +839,7 @@ function multi_eq_variable_map(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 =
         println("starting iteration: " * string(i) * " of ", string(size(pars)[1]))
 
         ## create new rainfall regime
-        rr = generate_rainfall_regime(Nyr, Pmean, Pdisp, pars[i, 1], pars[i, 2])
+        rr = generate_rainfall_regime(Nyr, Pmean, Pdisp, pars[i, 1], pars[i, 2], true, false, false)
 
         ## create mortality_table in advance to save time
         mort = mortality_table(length(rr[2]), μ, rr[2])

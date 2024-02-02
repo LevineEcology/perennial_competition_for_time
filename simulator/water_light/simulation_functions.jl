@@ -538,16 +538,15 @@ function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
                 update(prog)
             end
 
-            #println(zstar)
-
         end
 
     end
 
     return [biomass_data, n_dynamics, n_data, r_data, w_data,
-            w_in_data, height_data, canopy_dynamics, zstar_data, g, t, biomass_dynamics]
+            w_in_data, height_data, canopy_dynamics, zstar_data, g, t, biomass_dynamics, Tvec]
 
 end;
+
 
 """
     sim_water_ppa(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
@@ -973,7 +972,8 @@ in `sim_water_ppa_stochastic()`.
 """
 function generate_rainfall_regime(Nyr::Int64, Pmean::Float64, Pdisp::Float64,
                                   map_mean::Float64, map_sd::Float64,
-                                  constant_P::Bool = false, cluster::Bool = false)
+                                  constant_P::Bool = false, constant_ss::Bool = false,
+                                  cluster::Bool = false)
 
     if constant_P
         Preal = Int.(repeat([Pmean], Nyr))
@@ -1006,10 +1006,18 @@ function generate_rainfall_regime(Nyr::Int64, Pmean::Float64, Pdisp::Float64,
 
     ## now calculate storm sizes from yearly precip totals and interval lengths
     ss_list = Vector{Float64}(undef, length(Tlist))
-    i = 1
-    for yr in 1:Nyr
-        ss_list[i:i+Preal[yr]-1] .= Tlist[i:i+Preal[yr]-1] .* precip_list[yr]
-        i = i+Preal[yr]
+
+    if constant_ss
+
+        ss_list .= map_mean / Pmean
+
+    else
+
+        i = 1
+        for yr in 1:Nyr
+            ss_list[i:i+Preal[yr]-1] .= Tlist[i:i+Preal[yr]-1] .* precip_list[yr]
+            i = i+Preal[yr]
+        end
     end
     ss_list[ss_list .< 0.0] .= 0.0 ## no negative storm totals
 
