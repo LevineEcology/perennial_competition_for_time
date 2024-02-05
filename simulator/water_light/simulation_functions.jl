@@ -139,8 +139,7 @@ large upfront computational cost, but saves time overall for long simulation run
 """
 function mortality_table(Nyr::Int64, μ::Float64, Tvec::Vector{Float64})
     ## generate empty array
-    mt = zeros(Nyr+1, Nyr+1)
-
+    mt = zeros(Nyr+1, Nyr)
     ## run computations in parallel
     Threads.@threads for i in 1:Nyr
         for j in 1:Nyr
@@ -538,16 +537,15 @@ function iterate_water_ppa(Nyr::Int64, spp_data::DataFrame,
                 update(prog)
             end
 
-            #println(zstar)
-
         end
 
     end
 
     return [biomass_data, n_dynamics, n_data, r_data, w_data,
-            w_in_data, height_data, canopy_dynamics, zstar_data, g, t, biomass_dynamics]
+            w_in_data, height_data, canopy_dynamics, zstar_data, g, t, biomass_dynamics, Tvec]
 
 end;
+
 
 """
     sim_water_ppa(spp_data::DataFrame, Nyr::Int64, Nspp::Int64,
@@ -971,22 +969,19 @@ Creates a complete, stochastic rainfall regime for use in stochastic simulations
 in `sim_water_ppa_stochastic()`.
 
 """
-function generate_rainfall_regime(Nyr::Int64, Pmean::Float64, Pdisp::Float64,
+function generate_rainfall_regime(Nyr::Int64, Pmean::Float64, Psd::Float64,
                                   map_mean::Float64, map_sd::Float64,
-                                  constant_P::Bool = false, cluster::Bool = false)
+                                  constant_P::Bool = false, constant_ss::Bool = false,
+                                  cluster::Bool = false)
 
     if constant_P
         Preal = Int.(repeat([Pmean], Nyr))
         Tlist = repeat([1.0 / Pmean], Nyr * Int.(Pmean))
     else
 
-        ## reparameterize for draws from negative binomial distribution
-        var = Pmean + 1 / Pdisp * Pmean ^ 2
-        p = (var - Pmean) / var
-
-        ## draw storm frequencies from negative binomial distribution
-        Plist = rand(NegativeBinomial(Pdisp, 1-p), Nyr)
-        Plist[Plist .== 0] .= 1.0 ## don't allow 0 values
+        m = log((Pmean^2) / sqrt(Pmean^2 + Psd^2))
+        s = log(1 + (Psd^2 / Pmean^2))
+        Plist = Int.(round.(rand(LogNormal(m, s), Nyr)))
 
         ## true values of P are determined after calling generate_intervals()
         Preal = Float64[]
@@ -1006,10 +1001,18 @@ function generate_rainfall_regime(Nyr::Int64, Pmean::Float64, Pdisp::Float64,
 
     ## now calculate storm sizes from yearly precip totals and interval lengths
     ss_list = Vector{Float64}(undef, length(Tlist))
-    i = 1
-    for yr in 1:Nyr
-        ss_list[i:i+Preal[yr]-1] .= Tlist[i:i+Preal[yr]-1] .* precip_list[yr]
-        i = i+Preal[yr]
+
+    if constant_ss
+
+        ss_list .= map_mean / Pmean
+
+    else
+
+        i = 1
+        for yr in 1:Nyr
+            ss_list[i:i+Preal[yr]-1] .= Tlist[i:i+Preal[yr]-1] .* precip_list[yr]
+            i = i+Preal[yr]
+        end
     end
     ss_list[ss_list .< 0.0] .= 0.0 ## no negative storm totals
 
