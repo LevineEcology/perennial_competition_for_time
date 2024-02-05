@@ -143,10 +143,16 @@ atmospheric carbon concentration.
 function adjust_spp_data!(spp_data::DataFrame, t::Float64, rh::Float64, cₐ::Float64,
                           default_t::Float64 = 24.0, default_rh::Float64 = 30.0,
                           default_cₐ::Float64 = 280.0, b::Float64 = 3.0,
-                          γ::Float64 = 0.5, rᵣ::Float64 = 0.01, cₓ::Float64 = 1.5)
+                          γ::Float64 = 0.5, rᵣ::Float64 = 0.01, cₓ::Float64 = 1.5,
+                          vpd::Float64 = missing)
 
     V = calc_V.(spp_data.aₘ, default_cₐ, calc_vpd(default_t, default_rh))
-    calc_aₘ.(cₐ, calc_vpd(t, rh), V)
+    if ismissing(vpd)
+        calc_aₘ.(cₐ, calc_vpd(t, rh), V)
+    else
+        calc_aₘ.(cₐ, vpd, V)
+    end
+
     spp_data.C₁ = (calc_aₘ.(cₐ, calc_vpd(t, rh), V) .- (γ * rᵣ)) ./ (cₓ .* spp_data.X)
     return(spp_data)
 
@@ -296,7 +302,7 @@ end
     plot_rainfall_regime(rainfall_regime)
 
 """
-function plot_rainfall_regime(rainfall_regime, window = missing)
+function plot_rainfall_regime(rainfall_regime, max_t = missing, ymax = missing)
 
     t = Vector{Float64}(undef, length(rainfall_regime[1]))
     t[1] = rainfall_regime[2][1]
@@ -306,14 +312,20 @@ function plot_rainfall_regime(rainfall_regime, window = missing)
 
     w = copy(rainfall_regime[1])
 
-    if !ismissing(window)
-        t = t[window]
-        w = w[window]
+    if !ismissing(max_t)
+        w = w[t .< max_t]
+        t = t[t .< max_t]
+    end
+
+    if !ismissing(ymax)
+        ylims = [0.0, ymax]
+    else
+        ylims = [0.0, maximum(w)+(0.1*maximum(w))]
     end
 
     p = plot(t, w, seriestype = :scatter, color = :black, markersize = 0,
              frame = :box, legend = :none, grid = false, xlim = [0.0, maximum(t)],
-             ylim = [0.0, maximum(w)+(0.1*maximum(w))],
+             ylim = ylims,
              xlab = "Time (years)", ylab = "Storm size")
 
     for i in 1:length(t)

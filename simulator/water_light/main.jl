@@ -1076,33 +1076,57 @@ plot_simulation_dynamics(out2)
 P = 5.0
 mp = 0.2
 
+sd1 = 0.0
+sd2 = 0.1
+sd3 = 0.2
+sd4 = 0.4
+
+## check that stochastic simulator and standard simulator return same results
+r_1 = generate_rainfall_regime(400, P, 1000.0, mp, sd1, true, false)
+
+out = sim_water_ppa_stochastic(spp_data, length(r_1[1]), nrow(spp_data), 1.0, r_1, F, θ_fc, μ, zeros(1,1),
+                               0.4, b, 0.1, true)
+
+dynplot_1 = plot_simulation_dynamics(out)
+
 ## start dialing up variation in mean annual precip
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.1, true, false)
-rplot = plot_rainfall_regime(r)
+r_2 = generate_rainfall_regime(400, P, 1000.0, mp, sd2, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_2[1]), nrow(spp_data), 1.0, r_2, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_2 = plot_simulation_dynamics(out)
 
 
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.2, true, false)
-rplot = plot_rainfall_regime(r)
+r_3 = generate_rainfall_regime(400, P, 1000.0, mp, sd3, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_3[1]), nrow(spp_data), 1.0, r_3, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_3 = plot_simulation_dynamics(out)
 
 
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.4, true, false)
-rplot = plot_rainfall_regime(r)
+r_4 = generate_rainfall_regime(400, P, 1000.0, mp, sd4, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_4[1]), nrow(spp_data), 1.0, r_4, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_4 = plot_simulation_dynamics(out)
 
+ymax = maximum(r_4[1]) + (0.1 * maximum(r_4[1]))
+
+rplot_1 = plot_rainfall_regime(r_1, missing, ymax)
+plot(plot(rplot_1, xlab = "", title = "σ map = " * string(sd1)), plot(dynplot_1, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_mid_1.pdf")
+
+rplot_2 = plot_rainfall_regime(r_2, missing, ymax)
+plot(plot(rplot_2, xlab = "", title = "σ map = " * string(sd2)), plot(dynplot_2, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_mid_2.pdf")
+
+rplot_3 = plot_rainfall_regime(r_3, missing, ymax)
+plot(plot(rplot_3, xlab = "", title = "σ map = " * string(sd3)), plot(dynplot_3, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_mid_3.pdf")
+
+rplot_4 = plot_rainfall_regime(r_4, missing, ymax)
+plot(plot(rplot_4, xlab = "", title = "σ map = " * string(sd4)), plot(dynplot_4, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_mid_4.pdf")
 
 ##---------------------------------------------------------------
 ## For low mean map (only latest species persists)
@@ -1112,44 +1136,58 @@ plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
 P = 5.0
 mp = 0.05
 
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.0, true, false)
-rplot = plot_rainfall_regime(r)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+sd1 = 0.0
+sd2 = 0.033
+sd3 = 0.1
+sd4 = 0.45
+
+## check that stochastic simulator and standard simulator return same results
+r_1 = generate_rainfall_regime(400, P, 1000.0, mp, sd1, true, false)
+
+out = sim_water_ppa_stochastic(spp_data, length(r_1[1]), nrow(spp_data), 1.0, r_1, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
 
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_1 = plot_simulation_dynamics(out)
 
-## sd = 0.033
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.033, true, false)
-rplot = plot_rainfall_regime(r)
+## start dialing up variation in mean annual precip
+r_2 = generate_rainfall_regime(400, P, 1000.0, mp, sd2, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_2[1]), nrow(spp_data), 1.0, r_2, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_2 = plot_simulation_dynamics(out)
 
 
-## sd = 0.1
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.1, true, false)
-rplot = plot_rainfall_regime(r)
+r_3 = generate_rainfall_regime(400, P, 1000.0, mp, sd3, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_3[1]), nrow(spp_data), 1.0, r_3, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_3 = plot_simulation_dynamics(out)
 
 
-## sd = 0.4
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.45, true, false)
-rplot = plot_rainfall_regime(r)
+r_4 = generate_rainfall_regime(400, P, 1000.0, mp, sd4, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_4[1]), nrow(spp_data), 1.0, r_4, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
+dynplot_4 = plot_simulation_dynamics(out)
 
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+ymax = maximum(r_4[1]) + (0.1 * maximum(r_4[1]))
+
+rplot_1 = plot_rainfall_regime(r_1, missing, ymax)
+plot(plot(rplot_1, xlab = "", title = "σ map = " * string(sd1)), plot(dynplot_1, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_low_1.pdf")
+
+rplot_2 = plot_rainfall_regime(r_2, missing, ymax)
+plot(plot(rplot_2, xlab = "", title = "σ map = " * string(sd2)), plot(dynplot_2, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_low_2.pdf")
+
+rplot_3 = plot_rainfall_regime(r_3, missing, ymax)
+plot(plot(rplot_3, xlab = "", title = "σ map = " * string(sd3)), plot(dynplot_3, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_low_3.pdf")
+
+rplot_4 = plot_rainfall_regime(r_4, missing, ymax)
+plot(plot(rplot_4, xlab = "", title = "σ map = " * string(sd4)), plot(dynplot_4, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_low_4.pdf")
 
 
 ##---------------------------------------------------------------
@@ -1160,44 +1198,57 @@ plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
 P = 5.0
 mp = 0.5
 
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.0, true, false)
-rplot = plot_rainfall_regime(r)
+sd1 = 0.0
+sd2 = 0.13
+sd3 = 0.25
+sd4 = 0.5
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+## check that stochastic simulator and standard simulator return same results
+r_1 = generate_rainfall_regime(400, P, 1000.0, mp, sd1, true, false)
+
+out = sim_water_ppa_stochastic(spp_data, length(r_1[1]), nrow(spp_data), 1.0, r_1, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
 
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_1 = plot_simulation_dynamics(out)
 
-## sd = 0.13
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.13, true, false)
-rplot = plot_rainfall_regime(r)
+## start dialing up variation in mean annual precip
+r_2 = generate_rainfall_regime(400, P, 1000.0, mp, sd2, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_2[1]), nrow(spp_data), 1.0, r_2, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_2 = plot_simulation_dynamics(out)
 
 
-## sd = 0.15
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.15, true, false)
-rplot = plot_rainfall_regime(r)
+r_3 = generate_rainfall_regime(400, P, 1000.0, mp, sd3, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_3[1]), nrow(spp_data), 1.0, r_3, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_3 = plot_simulation_dynamics(out)
 
 
-## sd = 0.5
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.5, true, false)
-rplot = plot_rainfall_regime(r)
+r_4 = generate_rainfall_regime(400, P, 1000.0, mp, sd4, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_4[1]), nrow(spp_data), 1.0, r_4, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
+dynplot_4 = plot_simulation_dynamics(out)
 
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+ymax = maximum(r_4[1]) + (0.1 * maximum(r_4[1]))
+
+rplot_1 = plot_rainfall_regime(r_1, missing, ymax)
+plot(plot(rplot_1, xlab = "", title = "σ map = " * string(sd1)), plot(dynplot_1, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_high_1.pdf")
+
+rplot_2 = plot_rainfall_regime(r_2, missing, ymax)
+plot(plot(rplot_2, xlab = "", title = "σ map = " * string(sd2)), plot(dynplot_2, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_high_2.pdf")
+
+rplot_3 = plot_rainfall_regime(r_3, missing, ymax)
+plot(plot(rplot_3, xlab = "", title = "σ map = " * string(sd3)), plot(dynplot_3, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_high_3.pdf")
+
+rplot_4 = plot_rainfall_regime(r_4, missing, ymax)
+plot(plot(rplot_4, xlab = "", title = "σ map = " * string(sd4)), plot(dynplot_4, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_map_high_4.pdf")
 
 
 
@@ -1209,51 +1260,57 @@ plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
 P = 10.0
 mp = 0.3
 
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.0, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+sd1 = 0.0
+sd2 = 5.0
+sd3 = 10.0
+sd4 = 15.0
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+## check that stochastic simulator and standard simulator return same results
+r_1 = generate_rainfall_regime(200, P, 1000.0, mp, 0.0, true, false)
+
+out = sim_water_ppa_stochastic(spp_data, length(r_1[1]), nrow(spp_data), 1.0, r_1, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
 
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_1 = plot_simulation_dynamics(out)
 
+## start dialing up variation in mean annual precip
+r_2 = generate_rainfall_regime(200, P, sd2, mp, 0.0, false, true, false)
 
-r = generate_rainfall_regime(400, P, 1e5, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
-
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_2[1]), nrow(spp_data), 1.0, r_2, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_2 = plot_simulation_dynamics(out)
 
 
-r = generate_rainfall_regime(400, P, 1.0, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+r_3 = generate_rainfall_regime(200, P, sd3, mp, 0.0, false, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_3[1]), nrow(spp_data), 1.0, r_3, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_3 = plot_simulation_dynamics(out)
 
 
-r = generate_rainfall_regime(400, P, 0.01, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+r_4 = generate_rainfall_regime(200, P, sd4, mp, 0.0, false, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_4[1]), nrow(spp_data), 1.0, r_4, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_4 = plot_simulation_dynamics(out)
 
+ymax = maximum(r_4[1]) + (0.1 * maximum(r_4[1]))
 
-r = generate_rainfall_regime(400, P, 1e-3, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+rplot_1 = plot_rainfall_regime(r_1, 10, ymax)
+plot(plot(rplot_1, xlab = "", title = "σ P = " * string(sd1)), plot(dynplot_1, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_mid_1.pdf")
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
-                               0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+rplot_2 = plot_rainfall_regime(r_2, 10, ymax)
+plot(plot(rplot_2, xlab = "", title = "σ P = " * string(sd2)), plot(dynplot_2, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_mid_2.pdf")
 
+rplot_3 = plot_rainfall_regime(r_3, 10, ymax)
+plot(plot(rplot_3, xlab = "", title = "σ P = " *  string(sd3)), plot(dynplot_3, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_mid_3.pdf")
+
+rplot_4 = plot_rainfall_regime(r_4, 10, ymax)
+plot(plot(rplot_4, xlab = "", title = "σ P = " *  string(sd4)), plot(dynplot_4, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_mid_4.pdf")
 
 
 ##---------------------------------------------------------------
@@ -1262,53 +1319,59 @@ plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
 
 ## start dialing up variation in mean annual precip
 P = 3.0
-mp = 0.6
+mp = 0.3
 
-r = generate_rainfall_regime(400, P, 1000.0, mp, 0.0, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+sd1 = 0.0
+sd2 = 5.0
+sd3 = 10.0
+sd4 = 15.0
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+## check that stochastic simulator and standard simulator return same results
+r_1 = generate_rainfall_regime(200, P, 1000.0, mp, 0.0, true, false)
+
+out = sim_water_ppa_stochastic(spp_data, length(r_1[1]), nrow(spp_data), 1.0, r_1, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
 
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_1 = plot_simulation_dynamics(out)
 
+## start dialing up variation in mean annual precip
+r_2 = generate_rainfall_regime(200, P, sd2, mp, 0.0, false, true, false)
 
-r = generate_rainfall_regime(400, P, 1e5, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
-
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_2[1]), nrow(spp_data), 1.0, r_2, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_2 = plot_simulation_dynamics(out)
 
 
-r = generate_rainfall_regime(400, P, 1.0, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+r_3 = generate_rainfall_regime(200, P, disp3, mp, 0.0, false, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_3[1]), nrow(spp_data), 1.0, r_3, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_3 = plot_simulation_dynamics(out)
 
 
-r = generate_rainfall_regime(400, P, 0.01, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+r_4 = generate_rainfall_regime(200, P, disp4, mp, 0.0, false, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_4[1]), nrow(spp_data), 1.0, r_4, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_4 = plot_simulation_dynamics(out)
 
+ymax = maximum(r_4[1]) + (0.1 * maximum(r_4[1]))
 
-r = generate_rainfall_regime(400, P, 1e-3, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+rplot_1 = plot_rainfall_regime(r_1, 10, ymax)
+plot(plot(rplot_1, xlab = "", title = "σ P = " * string(sd1)), plot(dynplot_1, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_low_1.pdf")
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
-                               0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+rplot_2 = plot_rainfall_regime(r_2, 10, ymax)
+plot(plot(rplot_2, xlab = "", title = "σ P = " * string(sd2)), plot(dynplot_2, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_low_2.pdf")
 
+rplot_3 = plot_rainfall_regime(r_3, 10, ymax)
+plot(plot(rplot_3, xlab = "", title = "σ P = " * string(sd3)), plot(dynplot_3, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_low_3.pdf")
+
+rplot_4 = plot_rainfall_regime(r_4, 10, ymax)
+plot(plot(rplot_4, xlab = "", title = "σ P = " * string(sd4)), plot(dynplot_4, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_low_4.pdf")
 
 
 ##---------------------------------------------------------------
@@ -1317,53 +1380,58 @@ plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
 
 ## start dialing up variation in mean annual precip
 P = 20.0
-mp = 0.6
+mp = 0.3
 
-r = generate_rainfall_regime(200, P, 1000.0, mp, 0.0, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
-length(r[1])
+sd1 = 0.0
+sd2 = 5.0
+sd3 = 10.0
+sd4 = 20.0
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+## check that stochastic simulator and standard simulator return same results
+r_1 = generate_rainfall_regime(200, P, 0.0, mp, 0.0, true, false)
+
+out = sim_water_ppa_stochastic(spp_data, length(r_1[1]), nrow(spp_data), 1.0, r_1, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
 
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_1 = plot_simulation_dynamics(out)
 
+## start dialing up variation in mean annual precip
+r_2 = generate_rainfall_regime(200, P, sd2, mp, 0.0, false, true, false)
 
-r = generate_rainfall_regime(200, P, 1e5, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
-
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_2[1]), nrow(spp_data), 1.0, r_2, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_2 = plot_simulation_dynamics(out)
 
 
-r = generate_rainfall_regime(200, P, 1.0, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+r_3 = generate_rainfall_regime(200, P, sd3, mp, 0.0, false, true, false)
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_3[1]), nrow(spp_data), 1.0, r_3, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_3 = plot_simulation_dynamics(out)
 
+r_4 = generate_rainfall_regime(200, P, sd4, mp, 0.0, false, true, false)
 
-r = generate_rainfall_regime(200, P, 0.01, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
-
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
+out = sim_water_ppa_stochastic(spp_data, length(r_4[1]), nrow(spp_data), 1.0, r_4, F, θ_fc, μ, zeros(1,1),
                                0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+dynplot_4 = plot_simulation_dynamics(out)
 
+ymax = maximum(r_4[1]) + (0.1 * maximum(r_4[1]))
 
-r = generate_rainfall_regime(200, P, 1e-3, mp, 0.0, false, true, false)
-rplot = plot_rainfall_regime(r, 1:200)
+rplot_1 = plot_rainfall_regime(r_1, 10, ymax)
+plot(plot(rplot_1, xlab = "", title = "σ P = " * string(sd1)), plot(dynplot_1, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_high_1.pdf")
 
-out = sim_water_ppa_stochastic(spp_data, length(r[1]), nrow(spp_data), 1.0, r, F, θ_fc, μ, zeros(1,1),
-                               0.4, b, 0.1, true)
-dynplot = plot_simulation_dynamics(out)
-plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
+rplot_2 = plot_rainfall_regime(r_2, 10, ymax)
+plot(plot(rplot_2, xlab = "", title = "σ P = " * string(sd2)), plot(dynplot_2, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_high_2.pdf")
+
+rplot_3 = plot_rainfall_regime(r_3, 10, ymax)
+plot(plot(rplot_3, xlab = "", title = "σ P = " * string(sd3)), plot(dynplot_3, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_high_3.pdf")
+
+rplot_4 = plot_rainfall_regime(r_4, 10, ymax)
+plot(plot(rplot_4, xlab = "", title = "σ P = " * string(sd4)), plot(dynplot_4, colorbar = :none), layout = [1,1])
+savefig("figures/stochastic_P_high_4.pdf")
 
 
 ##---------------------------------------------------------------
@@ -1372,31 +1440,41 @@ plot(plot(rplot, xlab = ""), plot(dynplot, colorbar = :none), layout = [1,1])
 ##---------------------------------------------------------------
 
 
-out = multi_eq_variable_map(20, 10, 400, 0.4, 0.05, 0.4, 10, 0.0, 1.0, 3, 5.0, 4.0, 2, F, μ, false)
-out[1]
+out = multi_eq_variable_map(15, 5, 300, 0.4, 0.05, 0.5, 20, 0.0, 0.5, 4,
+                            5.0, 100.0, 2, F, μ, false, b)
 
 smeq = summarize_multi_eq_variable_map(out)
 sub = smeq[smeq.var .== "n", :]
 np = plot(sub.mapmean, sub.mean, group = sub.mapsd, line_z = sub.mapsd, ribbon = sub.sd, fill_z = sub.mapsd, linewidth = 3.5,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Mean annual precip", ylab = "Species richness")
+
+
+out2 = multi_eq_variable_P(15, 5, 300, 0.4, 3.0, 20.0, 20, -3.0, 3.0, 3,
+                            0.3, 2, F, μ, false, b)
+
+smeq = summarize_multi_eq_variable_P(out2)
+sub = smeq[smeq.var .== "n", :]
+sub.Pdisp .= round.(sub.Pdisp, digits = 2)
+np = plot(sub.Pmean, sub.mean, group = sub.Pdisp, line_z = log.(sub.Pdisp), ribbon = sub.sd,
+          fill_z = log.(sub.Pdisp), linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Storm frequency (storms per month)", ylab = "Species richness")
+savefig("figures/P_stochastic.pdf")
+
 
 ##---------------------------------------------------------------
 ## Alternative forcings
 ##---------------------------------------------------------------
 
+x = collect(range(100.0, 1500.0, 100))
+plot(x, calc_aₘ.(x, calc_vpd(20.0, 30.0)))
+plot!(x, calc_aₘ.(x, calc_vpd(20.0, 30.0), 1.04545, 1000.0, 50.0, 10.0))
+
 ##---------------------------------------------------------------
 ## carbon and MAP
 ##---------------------------------------------------------------
 
-calc_aₘ(500, 1000)
-
-x = collect(range, )
-plot(x, calc_aₘ.(500, calc_vpd.(x, 30.0)))
-
-x = collect(range(100.0, 1500.0, 100))
-plot(x, calc_aₘ.(x, calc_vpd(20.0, 30.0)))
-plot!(x, calc_aₘ.(x, calc_vpd(20.0, 30.0), 1.04545, 1000.0, 50.0, 10.0))
 
 meq = multi_eq_carbon_map(50, 30, 0.2, 100.0, 750.0, 100, 0.2, 0.4, 5, 10.0, F, μ, 2, 0.1)
 smeq = summarize_multi_eq_carbon_map(meq)
@@ -1477,22 +1555,20 @@ savefig("figures/div_es_total.pdf")
 
 
 ##---------------------------------------------------------------
-## temp/VPD
+## VPD
 ##---------------------------------------------------------------
 
-meq = multi_eq_temp_map(50, 5, 0.2, 10.0, 45.0, 100, 0.2, 0.4, 5, 10.0, F, μ, 2, 0.1)
-smeq = summarize_multi_eq_temp_map(meq)
-smeq.t .= round.(smeq.t, digits = 2)
+meq = multi_eq_vpd_map(50, 5, 0.2, 500.0, 10000.0, 100, 0.2, 0.4, 5, 10.0, F, μ, 2, 0.1)
+smeq = summarize_multi_eq_vpd_map(meq)
 sub = smeq[smeq.var .== "n", :]
-np = plot(sub.t, sub.mean, group = sub.map ./ 10.0, line_z = sub.map ./ 10.0,
+np = plot(sub.vpd, sub.mean, group = sub.map ./ 10.0, line_z = sub.map ./ 10.0,
           ribbon = (sub.mean .- sub.lower, sub.upper .- sub.mean),
           fill_z = sub.map ./ 10.0, linewidth = 3.5,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Average temperature (C)", ylab = "Species richness")
 
 smeq_b = summarize_multi_eq_biomass_temp_map(meq)
-smeq_b.t .= round.(smeq_b.t, digits = 2)
-bp = plot(smeq_b.t, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0,
+bp = plot(smeq_b.vpd, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0,
           fill_z = smeq_b.map ./ 10.0,
           linewidth = 3.5,
           ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
@@ -1512,22 +1588,70 @@ savefig("figures/div_es_total.pdf")
 
 
 ##---------------------------------------------------------------
-## temp and storm freq
+## VPD and storm freq
 ##---------------------------------------------------------------
 
-meq = multi_eq_temp_P(50, 30, 0.2, 10.0, 45.0, 100, 7.0, 15.0, 5, 0.3, F, μ, 2, 0.1)
+meq = multi_eq_vpd_P(50, 30, 0.2, 500.0, 10000.0, 100, 7.0, 15.0, 5, 0.3, F, μ, 2, 0.1)
 smeq = summarize_multi_eq_temp_P(meq)
-smeq.t .= round.(smeq.t, digits = 2)
 sub = smeq[smeq.var .== "n", :]
-np = plot(sub.t, sub.mean, group = sub.P, line_z = sub.P,
+np = plot(sub.vpd, sub.mean, group = sub.P, line_z = sub.P,
           ribbon = (sub.mean .- sub.lower, sub.upper .- sub.mean),
           fill_z = sub.P, linewidth = 3.5,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Average temperature (C)", ylab = "Species richness")
 
 smeq_b = summarize_multi_eq_biomass_temp_P(meq)
-smeq_b.t .= round.(smeq_b.t, digits = 2)
-bp = plot(smeq_b.t, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P,
+bp = plot(smeq_b.vpd, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P,
+          fill_z = smeq_b.P,
+          linewidth = 3.5,
+          ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Average temperature (C)", ylab = "Log ecosystem biomass")
+
+plot(np, bp, layout = [1,1])
+savefig("figures/map_freq.pdf")
+
+
+
+##---------------------------------------------------------------
+## Mortality (season length (temperature))
+##---------------------------------------------------------------
+
+meq = multi_eq_μ_map(50, 5, 0.2, 0.05, 0.2, 100, 0.2, 0.4, 5, 10.0, F, μ, 2, 0.1)
+smeq = summarize_multi_eq_vpd_map(meq)
+sub = smeq[smeq.var .== "n", :]
+np = plot(sub.vpd, sub.mean, group = sub.map ./ 10.0, line_z = sub.map ./ 10.0,
+          ribbon = (sub.mean .- sub.lower, sub.upper .- sub.mean),
+          fill_z = sub.map ./ 10.0, linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Average temperature (C)", ylab = "Species richness")
+
+smeq_b = summarize_multi_eq_biomass_temp_map(meq)
+bp = plot(smeq_b.vpd, (smeq_b.mean), group = smeq_b.map ./ 10.0, line_z = smeq_b.map ./ 10.0,
+          fill_z = smeq_b.map ./ 10.0,
+          linewidth = 3.5,
+          ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Average temperature (C)", ylab = "Log ecosystem biomass")
+
+plot(np, bp, layout = [1,1])
+savefig("figures/map_temp.pdf")
+
+##---------------------------------------------------------------
+## VPD and storm freq
+##---------------------------------------------------------------
+
+meq = multi_eq_μ_P(50, 30, 0.2, 0.05, 0.2, 100, 7.0, 15.0, 5, 0.3, F, μ, 2, 0.1)
+smeq = summarize_multi_eq_temp_P(meq)
+sub = smeq[smeq.var .== "n", :]
+np = plot(sub.vpd, sub.mean, group = sub.P, line_z = sub.P,
+          ribbon = (sub.mean .- sub.lower, sub.upper .- sub.mean),
+          fill_z = sub.P, linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
+          xlab = "Average temperature (C)", ylab = "Species richness")
+
+smeq_b = summarize_multi_eq_biomass_temp_P(meq)
+bp = plot(smeq_b.vpd, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P,
           fill_z = smeq_b.P,
           linewidth = 3.5,
           ribbon = (smeq_b.mean .- smeq_b.lower, smeq_b.upper .- smeq_b.mean),
