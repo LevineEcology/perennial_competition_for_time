@@ -851,7 +851,9 @@ function iterate_ppa(Nyr::Int64, spp_data::DataFrame,
     end
 
     return [biomass_data, n_dynamics, n_data, r_data,
-            height_data, canopy_dynamics, zstar_data]
+            height_data, canopy_dynamics, zstar_data, canopy_dynamics,
+            repeat([T], Nyr), repeat([T], Nyr), repeat([T], Nyr), repeat([T], Nyr),
+            repeat([T], Nyr)]
 
 end;
 

@@ -47,93 +47,52 @@ meq = multi_eq(30, 100, 0.2, 0.05, 0.5, 40, 3, 10, 4, F, μ, 2, 0.1)
 smeq = summarize_multi_eq(meq)
 smeq.P .= round.(smeq.P, digits = 2)
 sub = smeq[smeq.var .== "n", :]
-np = plot(sub.total ./ 10.0, sub.mean, group = sub.P, line_z = sub.P, ribbon = sub.sd, fill_z = sub.P, linewidth = 3.5,
-          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.5, 5.0], ylims = [0.0, 30.0],
+np = plot(sub.map, sub.mean, group = sub.P, line_z = sub.P, ribbon = sub.sd, fill_z = sub.P, linewidth = 3.5,
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.05, 0.5], ylims = [0.0, 30.0],
+          legend = :outerright, legendtitle = "Storm \n frequency", legendtitlefontsize = 7,
           xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Species richness")
 
 smeq_b = summarize_multi_eq_biomass(meq)
 smeq_b.P .= round.(smeq_b.P, digits = 2)
-bp = plot(smeq_b.total ./ 10.0, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P, fill_z = smeq_b.P,
+bp = plot(smeq_b.map, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P, fill_z = smeq_b.P,
           linewidth = 3.5, ribbon = smeq_b.sd,
-          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.5, 5.0],
+          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.05, 0.5],
+          legend = :outerright, legendtitle = "Storm \n frequency", legendtitlefontsize = 7,
           xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Log ecosystem biomass")
 
 plot(np, bp, layout = [1,1])
-savefig("figures/total_gradient.pdf")
-
-summarize_multi_eq_transpiration(meq)
+savefig("figures/map_gradient.pdf")
 
 plot(sub.mean, (smeq_b.mean), group = smeq_b.P, line_z = smeq_b.P, fill_z = smeq_b.P,
      linewidth = 3.5,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Species Richness", ylab = "Total biomass")
-savefig("figures/div_es_total.pdf")
+savefig("figures/div_es_map.pdf")
 
 
 meq = multi_eq(30, 100, 0.4, 0.2, 0.5, 4, 3, 30, 40, F, μ, 2)
 smeq = summarize_multi_eq(meq)
 sub = smeq[smeq.var .== "n", :]
-np = plot(sub.P, sub.mean, group = sub.total ./ 10.0, line_z = sub.total, ribbon = sub.sd, fill_z = sub.total, linewidth = 3.5,
+np = plot(sub.P, sub.mean, group = sub.map, line_z = sub.map, ribbon = sub.sd, fill_z = sub.map, linewidth = 3.5,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [3.0, 30.0], ylims = [0.0, 30.0],
+          legend = :outerright, legendtitle = "Monthly \n precip.", legendtitlefontsize = 7,
           xlab = "Storm frequency (storms per month)", ylab = "Species richness")
 
 smeq_b = summarize_multi_eq_biomass(meq)
-bp = plot(smeq_b.P, smeq_b.mean, group = smeq_b.total, line_z = smeq_b.total,
-          fill_z = smeq_b.total, linewidth = 3.5, ribbon = smeq_b.sd,
+bp = plot(smeq_b.P, smeq_b.mean, group = smeq_b.map, line_z = smeq_b.map,
+          fill_z = smeq_b.map, linewidth = 3.5, ribbon = smeq_b.sd,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [3.0, 30.0],
+          legend = :outerright, legendtitle = "Monthly \n precip.", legendtitlefontsize = 7,
           xlab = "Monthly precipitation (volumetric soil water equivalent)", ylab = "Total biomass")
 
 plot(np, bp, layout = [1,1])
 savefig("figures/P_gradient.pdf")
 
-plot(sub.mean, log.(smeq_b.mean), group = smeq_b.total, line_z = smeq_b.total, fill_z = smeq_b.total ,
+plot(sub.mean, log.(smeq_b.mean), group = smeq_b.map, line_z = smeq_b.map, fill_z = smeq_b.map,
      linewidth = 3.5,
           seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
           xlab = "Species richness", ylab = "Total biomass")
 savefig("figures/div_es_P.pdf")
-
-
-
-meq = multi_eq(30, 100, 0.2, 0.05, 0.5, 40, 10, 10, 1, F, μ, 2, 0.1)
-smeq = summarize_multi_eq(meq)
-smeq.P .= round.(smeq.P, digits = 2)
-sub = smeq[smeq.var .== "n", :]
-np = plot(sub.total ./ 100.0, sub.mean, group = sub.P, line_z = sub.P, ribbon = sub.sd, fill_z = sub.P, linewidth = 3.5, legend = :none,
-          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.05, 0.5], ylims = [0.0, 30.0], ylab = "Species richness")
-
-smeq_b = summarize_multi_eq_biomass(meq)
-smeq_b.P .= round.(smeq_b.P, digits = 2)
-bp = plot(smeq_b.total ./ 100.0, smeq_b.mean .* 5, group = smeq_b.P, line_z = smeq_b.P, fill_z = smeq_b.P,
-          linewidth = 3.5, ribbon = smeq_b.sd, legend = :none,
-          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, xlims = [0.05, 0.5],
-          xlab = "Mean storm magnitude (volumetric soil water equivalent)", ylab = "GPP (g C m⁻² day⁻¹)")
-
-plot(np, bp, layout = [1,1])
-savefig("~/Documents/Science/application_materials/f1.pdf")
-
-meq = multi_eq(30, 100, 0.3, 0.25, 0.25, 1, 1, 20, 40, F, μ, 2, 0.1)
-smeq = summarize_multi_eq(meq)
-smeq.P .= round.(smeq.P, digits = 2)
-sub = smeq[smeq.var .== "n", :]
-np = plot(sub.P, sub.mean, group = sub.total, line_z = sub.total, ribbon = sub.sd, fill_z = sub.total, linewidth = 3.5, legend = :none,
-          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box, ylims = [0.0, 30.0], ylab = "Species richness")
-
-smeq_b = summarize_multi_eq_biomass(meq)
-smeq_b.P .= round.(smeq_b.P, digits = 2)
-bp = plot(smeq_b[40:-1:1, :P], smeq_b.mean .* 5, group = smeq_b.total, line_z = smeq_b.total, fill_z = smeq_b.total,
-          linewidth = 3.5, legend = :none, ribbon = smeq_b.sd,
-          seriescolor = my_cgrad, fillalpha = 0.3, colorbar = false, frame = :box,
-          xlab = "Mean storm frequency (storms per month)", ylab = "GPP (g C m⁻² day⁻¹)")
-plot(np, bp, layout = [1,1])
-savefig("~/Documents/Science/application_materials/f2.pdf")
-
-
-
-spp_data = generate_spp_data(15, 0.7, 1, 1.0 / P, F, μ, 2.5, 0.4, 0.0, 0.0001, 0.0001, 11.0)
-calc_eqN(spp_data, 0.01, 0.03)
-calc_eq_biomass(spp_data, 0.03, E, 10, F, μ, 0.1, 0.4)
-T = 0.1
-ρ = 0.5
 
 ##---------------------------------------------------------------
 ## Edaphic gradients -- SIMULATIONS

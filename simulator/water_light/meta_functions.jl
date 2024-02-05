@@ -61,7 +61,7 @@ function multi_eq(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
     full_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     biomass_results = Array{Float64}(undef, Nspp*Niter, size(params)[1])
     transpir_results = Array{Float64}(undef, Niter, size(params)[1])
-    Threads.@threads for i in 1:size(params)[1]
+    for i in 1:size(params)[1]
         sub_results = Vector{Float64}(undef, Nspp*Niter)
         biomass_sub = Vector{Float64}(undef, Nspp*Niter)
 
@@ -102,13 +102,11 @@ function summarize_multi_eq(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
-    summary = DataFrame(total = repeat(multi_eq_output[3][:,3], outer = 4),
+    summary = DataFrame(map = repeat(multi_eq_output[3][:,3], outer = 4),
                         P = repeat(multi_eq_output[3][:,2], outer = 4),
                         var = repeat(["n", "min", "max", "avg"], inner = Npar),
                         mean = Vector{Float64}(undef, Npar*4),
                         sd = Vector{Float64}(undef, Npar*4))
-
-    summary.total = round.(summary.total .* 100)
 
     nfeas_temp = Vector{Float64}(undef, Niter); maxfeas_temp = Vector{Float64}(undef, Niter);
     minfeas_temp = Vector{Float64}(undef, Niter); avgfeas_temp = Vector{Float64}(undef, Niter);
@@ -143,12 +141,10 @@ function summarize_multi_eq_biomass(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; Npar = size(multi_eq_output[1])[2];
-    summary = DataFrame(total = repeat(multi_eq_output[3][:,3]),
+    summary = DataFrame(map = repeat(multi_eq_output[3][:,3]),
                         P = repeat(multi_eq_output[3][:,2]),
                         mean = Vector{Float64}(undef, Npar),
                         sd = Vector{Float64}(undef, Npar))
-
-    summary.total = round.(summary.total .* 100)
 
     la_temp = Vector{Float64}(undef, Niter);
 

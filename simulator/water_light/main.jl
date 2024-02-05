@@ -168,10 +168,10 @@ end
 
 
 ## do some exploration, varying parameter values to look at stability
-spp_data = generate_spp_data(Nspp = 1, Wmax = 0.6, n_ht = 1,
-                             T = 1.0 / P, F = F, μ = μ, b = 3.0,
-                             tradeoff_exp = 0.5, tradeoff_sd = 0.0,
-                             C₁max = 0.0001, C₂max = 0.00005)
+spp_data = generate_spp_data(1, 0.6, 1,
+                             1.0 / P, F, μ, 3.0,
+                            0.5, 0.0,
+                             0.0001, 0.00005)
 spp_data.ht .= 0.5
 
 F = 100.0
@@ -187,6 +187,7 @@ out = sim_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, 1.0/P, zeros(1,1), tr
 
 plot(1:length(out[7]), out[7])
 plot_simulation_dynamics(out)
+plot_canopy_cover(out)
 
 xstar = calc_xstar(spp_data.C₁[1], uf, P, μ, F)
 sqrt(xstar)
@@ -207,17 +208,29 @@ sqrt(find_zero(ts, 1.0))
 ## stable
 uf = 0.1
 out = sim_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, 1.0/P, zeros(1,1), true, 3.0, uf, false)
-plot(1:length(out[7]), out[7])
+plot(1:length(out[7]), out[7], xlab = "time (years)", ylab = "canopy closure height", frame = :box,
+     grid = :none, legend = :none, linewidth = 2, color = :black)
+savefig("figures/stable_zstar.pdf")
+p = plot_simulation_dynamics(out)
+plot(p, legend = :none, ylim = [0.0, 1200.0])
+savefig("figures/stable_pop.pdf")
 
 ## stable
 uf = 0.01
 out = sim_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, 1.0/P, zeros(1,1), true, 3.0, uf, false)
 plot(1:length(out[7]), out[7])
+plot_canopy_cover(out)
 
 ## unstable ?
-uf = 0.0001
+uf = 1e-5
 out = sim_ppa(spp_data, Nyr, nrow(spp_data), Ninit, μ, F, 1.0/P, zeros(1,1), true, 3.0, uf, false)
-plot(1:length(out[7]), out[7])
+plot(1:length(out[7]), out[7], xlab = "time (years)", ylab = "canopy closure height", frame = :box,
+     grid = :none, legend = :none, linewidth = 2, color = :black)
+savefig("figures/unstable_zstar.pdf")
+p = plot_simulation_dynamics(out)
+plot(p, legend = :none, ylim = [0.0, 1200.0])
+savefig("figures/unstable_pop.pdf")
+
 
 ## try and get a sense of the pattern over a range of parameter values
 uf_list = range(0.00001, stop = 0.025, length = 20)
