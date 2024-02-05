@@ -144,16 +144,16 @@ function adjust_spp_data!(spp_data::DataFrame, t::Float64, rh::Float64, cₐ::Fl
                           default_t::Float64 = 24.0, default_rh::Float64 = 30.0,
                           default_cₐ::Float64 = 280.0, b::Float64 = 3.0,
                           γ::Float64 = 0.5, rᵣ::Float64 = 0.01, cₓ::Float64 = 1.5,
-                          vpd::Float64 = missing)
+                          vpd = missing)
 
     V = calc_V.(spp_data.aₘ, default_cₐ, calc_vpd(default_t, default_rh))
     if ismissing(vpd)
-        calc_aₘ.(cₐ, calc_vpd(t, rh), V)
+        aₘ = calc_aₘ.(cₐ, calc_vpd(t, rh), V)
     else
-        calc_aₘ.(cₐ, vpd, V)
+        aₘ = calc_aₘ.(cₐ, vpd, V)
     end
 
-    spp_data.C₁ = (calc_aₘ.(cₐ, calc_vpd(t, rh), V) .- (γ * rᵣ)) ./ (cₓ .* spp_data.X)
+    spp_data.C₁ = (aₘ .- (γ * rᵣ)) ./ (cₓ .* spp_data.X)
     return(spp_data)
 
 end;

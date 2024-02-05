@@ -196,6 +196,14 @@ end;
 ##---------------------------------------------------------------
 
 """
+    multi_eq_carbon_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                        min_cₐ::Float64 = 400.0, max_cₐ::Float64 = 450.0, length_cₐ::Int64 = 10,
+                        min_map::Float64 = 0.1, max_map::Float64 = 3.0,
+                        length_map::Int64 = 3,
+                        P::Float64 = 10.0,
+                        F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                        constant_ss::Bool = false, ss::Float64 = 0.02, t::Float64 = 24.0, rh::Float64 = 30.0)
+
 TBW
 """
 function multi_eq_carbon_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
@@ -264,6 +272,8 @@ function multi_eq_carbon_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
 end
 
 """
+    summarize_multi_eq_carbon_map(multi_eq_output::Vector{Any})
+
 TBW
 """
 function summarize_multi_eq_carbon_map(multi_eq_output::Vector{Any})
@@ -309,6 +319,8 @@ function summarize_multi_eq_carbon_map(multi_eq_output::Vector{Any})
 end;
 
 """
+    summarize_multi_eq_biomass_carbon_map(multi_eq_output::Vector{Any})
+
 TBW
 """
 function summarize_multi_eq_biomass_carbon_map(multi_eq_output::Vector{Any})
@@ -344,6 +356,15 @@ end;
 ##---------------------------------------------------------------
 
 """
+    multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                      min_cₐ::Float64 = 400.0, max_cₐ::Float64 = 450.0, length_cₐ::Int64 = 10,
+                      min_P::Float64 = 8.0, max_P::Float64 = 50.0,
+                      length_P::Int64 = 3,
+                      map::Float64 = 0.3,
+                      F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                      constant_ss::Bool = false, ss::Float64 = 0.02, t::Float64 = 24.0, rh::Float64 = 30.0)
+
+
 TBW
 """
 function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
@@ -373,7 +394,7 @@ function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
 
     sd = []
     for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, μ,
+        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((max_P - min_P) / 2), F, μ,
                                          3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6, true))
     end
 
@@ -391,15 +412,15 @@ function multi_eq_carbon_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
             spd = sd[j]
             adjust_spp_data!(spd, t, rh, params[i,2]) ## adjust spp data to account for new climate
             ## need to recalculate τ, because T changes with params
-            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / P, b)
+            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / params[i,3], b)
             eqN = Vector(calc_eqN(spd, 1.0 / params[i,3], params[i,1], F, E, θ_fc, μ, false, false, 0.1)[:,:eqN])
             sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqN
-            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / P, F, μ, uf)
+            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / params[i,3], F, μ, uf)
             biomass_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqB
             if sum(eqN .> 0.0) == 0
                 transpir_results[j,i] = 0
             else
-                transpir_results[j,i] = params[i,1] * P
+                transpir_results[j,i] = params[i,1] * params[i,3]
             end
         end
 
@@ -498,6 +519,15 @@ end;
 ##---------------------------------------------------------------
 
 """
+    multi_eq_vpd_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                     min_vpd::Float64 = 500.0, max_vpd::Float64 = 10000.0, length_vpd::Int64 = 10,
+                     min_map::Float64 = 0.1, max_map::Float64 = 3.0,
+                     length_map::Int64 = 3,
+                     P::Float64 = 10.0,
+                     F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                     constant_ss::Bool = false, ss::Float64 = 0.02, cₐ::Float64 = 280.0, rh::Float64 = 30.0)
+
+
 TBW
 """
 function multi_eq_vpd_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
@@ -517,7 +547,7 @@ function multi_eq_vpd_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
         W₀_list[i] = params[i][1] / P
     end
 
-    params = hcat(W₀_list, repeat(t_list, inner = length(map_list)),
+    params = hcat(W₀_list, repeat(vpd_list, inner = length(map_list)),
                   repeat(map_list, outer = length(vpd_list)));
 
     params[params[:,1] .> θ_fc, 1] .= θ_fc;
@@ -568,6 +598,8 @@ function multi_eq_vpd_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
 end
 
 """
+    summarize_multi_eq_vpd_map(multi_eq_output::Vector{Any})
+
 TBW
 """
 function summarize_multi_eq_vpd_map(multi_eq_output::Vector{Any})
@@ -614,6 +646,8 @@ function summarize_multi_eq_vpd_map(multi_eq_output::Vector{Any})
 end;
 
 """
+    summarize_multi_eq_biomass_vpd_map(multi_eq_output::Vector{Any})
+
 TBW
 """
 function summarize_multi_eq_biomass_vpd_map(multi_eq_output::Vector{Any})
@@ -649,6 +683,15 @@ end;
 ##---------------------------------------------------------------
 
 """
+    multi_eq_vpd_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                   min_vpd::Float64 = 500.0, max_vpd::Float64 = 10000.0, length_vpd::Int64 = 10,
+                   min_P::Float64 = 8.0, max_P::Float64 = 50.0,
+                   length_P::Int64 = 3,
+                   map::Float64 = 0.3,
+                   F::Float64 = 10.0, μ::Float64 = 0.03, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                   constant_ss::Bool = false, ss::Float64 = 0.02, cₐ::Float64 = 280.0, rh::Float64 = 30.0)
+
+
 TBW
 """
 function multi_eq_vpd_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
@@ -696,15 +739,15 @@ function multi_eq_vpd_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
             spd = sd[j]
             adjust_spp_data!(spd, 20.0, rh, cₐ, 24.0, 30.0, 280.0, 3.0, 0.5, 0.01, 1.5, params[i,2])
             ## need to recalculate τ, because T changes with params
-            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / P, b)
+            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, μ, 1.0 / params[i,3], b)
             eqN = Vector(calc_eqN(spd, 1.0 / params[i,3], params[i,1], F, E, θ_fc, μ, false, false, 0.1)[:,:eqN])
             sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqN
-            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / P, F, μ, uf)
+            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / params[i,3], F, μ, uf)
             biomass_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqB
             if sum(eqN .> 0.0) == 0
                 transpir_results[j,i] = 0
             else
-                transpir_results[j,i] = params[i,1] * P
+                transpir_results[j,i] = params[i,1] * params[i,3]
             end
         end
 
@@ -721,8 +764,8 @@ end
 """
     summarize_multi_eq_carbon_P(multi_eq_output::Vector{Any})
 
-Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium population densities
-across iterations for each precipitation regime. The standard deviation in density is also included
+Summarizes the output of `multi_eq_carbon_P`, creating a dataframe of mean equilibrium diversity
+across iterations for each atmospheric carbon x storm frequency regime. The standard deviation in density is also included
 in this dataframe.
 """
 function summarize_multi_eq_vpd_P(multi_eq_output::Vector{Any})
@@ -768,8 +811,8 @@ end;
 """
     summarize_multi_eq_biomass(multi_eq_output::Vector{Any})
 
-Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium biomass
-across iterations for each precipitation regime. The standard deviation in biomass is also included
+Summarizes the output of `multi_eq_carbon_P`, creating a dataframe of mean equilibrium biomass
+across iterations for each atmospheric carbon x storm frequency regime. The standard deviation in density is also included
 in this dataframe.
 """
 function summarize_multi_eq_biomass_vpd_P(multi_eq_output::Vector{Any})
@@ -803,6 +846,15 @@ end;
 ##---------------------------------------------------------------
 
 """
+    multi_eq_μ_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                   min_μ::Float64 = 0.05, max_μ::Float64 = 0.2, length_μ::Int64 = 10,
+                   min_map::Float64 = 0.1, max_map::Float64 = 3.0,
+                   length_map::Int64 = 3,
+                   P::Float64 = 10.0,
+                   F::Float64 = 10.0, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                   constant_ss::Bool = false, ss::Float64 = 0.02, cₐ::Float64 = 280.0, rh::Float64 = 30.0)
+
+
 TBW
 """
 function multi_eq_μ_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
@@ -871,6 +923,8 @@ function multi_eq_μ_map(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
 end
 
 """
+    summarize_multi_eq_μ_map(multi_eq_output::Vector{Any})
+
 TBW
 """
 function summarize_multi_eq_μ_map(multi_eq_output::Vector{Any})
@@ -917,6 +971,8 @@ function summarize_multi_eq_μ_map(multi_eq_output::Vector{Any})
 end;
 
 """
+    summarize_multi_μ_biomass_gs_map(multi_eq_output::Vector{Any})
+
 TBW
 """
 function summarize_multi_μ_biomass_gs_map(multi_eq_output::Vector{Any})
@@ -952,15 +1008,20 @@ end;
 ##---------------------------------------------------------------
 
 """
+    multi_eq_μ_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
+                 min_μ::Float64 = 0.05, max_μ::Float64 = 0.2, length_μ::Int64 = 10,
+                 min_P::Float64 = 8.0, max_P::Float64 = 50.0, length_P::Int64 = 3,
+                 map::Float64 = 0.3, F::Float64 = 10.0, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                 constant_ss::Bool = false, ss::Float64 = 0.02, cₐ::Float64 = 280.0, rh::Float64 = 30.0)
+
 TBW
+
 """
 function multi_eq_μ_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
-                       min_μ::Float64 = 0.05, max_μ::Float64 = 0.2, length_μ::Int64 = 10,
-                       min_P::Float64 = 8.0, max_P::Float64 = 50.0,
-                       length_P::Int64 = 3,
-                       map::Float64 = 0.3,
-                       F::Float64 = 10.0, n_hts::Int64 = 3, uf::Float64 = 0.1,
-                       constant_ss::Bool = false, ss::Float64 = 0.02, cₐ::Float64 = 280.0, rh::Float64 = 30.0)
+                      min_μ::Float64 = 0.05, max_μ::Float64 = 0.2, length_μ::Int64 = 10,
+                      min_P::Float64 = 8.0, max_P::Float64 = 50.0, length_P::Int64 = 3,
+                      map::Float64 = 0.3, F::Float64 = 10.0, n_hts::Int64 = 3, uf::Float64 = 0.1,
+                      constant_ss::Bool = false, ss::Float64 = 0.02, cₐ::Float64 = 280.0, rh::Float64 = 30.0)
 
     P_list = collect(range(min_P, stop = max_P, length = length_P));
     μ_list = collect(range(min_μ, stop = max_μ, length = length_μ));
@@ -981,7 +1042,7 @@ function multi_eq_μ_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
 
     sd = []
     for i in 1:Niter
-        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((15 - 1) / 2), F, 0.2,
+        sd = push!(sd, generate_spp_data(Nspp, 0.9, n_hts, 1.0 / ((max_P - min_P) / 2), F, 0.2,
                                          3.0, 0.4, 0.0, 0.0001, 0.00005, 11.0, 0.3, 0.6, true))
     end
 
@@ -998,15 +1059,15 @@ function multi_eq_μ_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
         for j in 1:Niter
             spd = sd[j]
             ## need to recalculate τ, because T changes with params
-            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, params[i,2], 1.0 / P, b)
+            spd.τ = calc_τ.(spd.C₁, spd.C₂, F, params[i,2], 1.0 / params[i,3], b)
             eqN = Vector(calc_eqN(spd, 1.0 / params[i,3], params[i,1], F, E, θ_fc, params[i,2], false, false, 0.1)[:,:eqN])
             sub_results[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqN
-            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / P, F, μ, uf)
+            eqB = calc_eq_biomass(spd, params[i, 1], E, 1.0 / params[i,3], F, μ, uf)
             biomass_sub[[((j-1)*Nspp)+1:1:j*Nspp;]] = eqB
             if sum(eqN .> 0.0) == 0
                 transpir_results[j,i] = 0
             else
-                transpir_results[j,i] = params[i,1] * P
+                transpir_results[j,i] = params[i,1] * params[i,3]
             end
         end
 
@@ -1021,11 +1082,11 @@ function multi_eq_μ_P(Nspp::Int64 = 10, Niter::Int64 = 10, θ_fc = 0.4,
 end
 
 """
-    summarize_multi_eq_carbon_P(multi_eq_output::Vector{Any})
+    summarize_multi_eq_μ_P(multi_eq_output::Vector{Any})
 
-Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium population densities
-across iterations for each precipitation regime. The standard deviation in density is also included
-in this dataframe.
+Summarizes the output of `multi_eq_μ_P`, creating a dataframe of mean equilibrium population densities
+across iterations for each mortality x storm frequency combination.
+The standard deviation in diversity is also calculated.
 """
 function summarize_multi_eq_μ_P(multi_eq_output::Vector{Any})
 
@@ -1065,11 +1126,11 @@ function summarize_multi_eq_μ_P(multi_eq_output::Vector{Any})
 end;
 
 """
-    summarize_multi_eq_biomass(multi_eq_output::Vector{Any})
+    summarize_multi_eq_biomass_μ_P(multi_eq_output::Vector{Any})
 
-Summarizes the output of `multi_eq`, creating a dataframe of mean equilibrium biomass
-across iterations for each precipitation regime. The standard deviation in biomass is also included
-in this dataframe.
+Summarizes the output of `multi_eq_μ_P`, creating a dataframe of mean equilibrium biomass
+across iterations for each mortality x storm frequency combination.
+The standard deviation in biomass is also calculated.
 """
 function summarize_multi_eq_biomass_μ_P(multi_eq_output::Vector{Any})
 
@@ -1096,15 +1157,25 @@ function summarize_multi_eq_biomass_μ_P(multi_eq_output::Vector{Any})
 
 end;
 
-
-
-
-
-
 ##---------------------------------------------------------------
 ## Stochastic
 ##---------------------------------------------------------------
+"""
+    multi_eq_variable_map(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
+                          min_map_mean::Float64 = 0.1 * 15, max_map_mean::Float64 = 0.6 * 15,
+                          length_map_mean::Int64 = 10,
+                          min_map_sd::Float64 = 0.0, max_map_sd::Float64 = 1.5, length_map_sd::Int64 = 5,
+                          Pmean::Float64 = 10.0, Pdisp::Float64 = 10.0, n_ht::Int64 = 1,
+                          F::Float64 = 10.0, μ::Float64 = 0.03, cluster::Bool = false, b::Float64 = 3.0)
 
+Same as `multi_eq()` except that mean annual precip is now a random variable, rather than constant. Equilibria
+are determined through simulation, with Nyr specifying the length of the simulation (user must be sure rough equilibrium)
+can be reached during this timeframe. Simulations are performed across a grid of parameters
+representing all combinations of a range of average MAP values, and a range of MAP standard deviations. These
+parameters are then fed into `generate_rainfall_regime()` to create the environmental conditions for each
+simulation.
+
+"""
 function multi_eq_variable_map(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
                                min_map_mean::Float64 = 0.1 * 15, max_map_mean::Float64 = 0.6 * 15,
                                length_map_mean::Int64 = 10,
@@ -1179,20 +1250,34 @@ function multi_eq_variable_map(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 =
 end
 
 
+"""
+    multi_eq_variable_P(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
+                        min_P_mean::Float64 = 3.0, max_P_mean::Float64 = 20.0,
+                        length_P_mean::Int64 = 10,
+                        log_min_P_sd::Float64 = -5, log_max_P_sd::Float64 = 5, length_P_sd::Int64 = 3,
+                        map_mean::Float64 = 0.3, n_ht::Int64 = 1,
+                        F::Float64 = 10.0, μ::Float64 = 0.03, cluster::Bool = false, b::Float64 = 3.0)
 
+Same as `multi_eq()` except that storm frequency (P) is now a random variable, rather than constant. Equilibria
+are determined through simulation, with Nyr specifying the length of the simulation (user must be sure rough equilibrium)
+can be reached during this timeframe. Simulations are performed across a grid of parameters
+representing all combinations of a range of average P values, and a range of P standard deviations. These
+parameters are then fed into `generate_rainfall_regime()` to create the environmental conditions for each
+simulation.
+"""
 function multi_eq_variable_P(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 400, θ_fc::Float64 = 0.4,
                                min_P_mean::Float64 = 3.0, max_P_mean::Float64 = 20.0,
                                length_P_mean::Int64 = 10,
-                               log_min_P_disp::Float64 = -5, log_max_P_disp::Float64 = 5, length_P_disp::Int64 = 3,
+                               log_min_P_sd::Float64 = -5, log_max_P_sd::Float64 = 5, length_P_sd::Int64 = 3,
                                map_mean::Float64 = 0.3, n_ht::Int64 = 1,
                                F::Float64 = 10.0, μ::Float64 = 0.03, cluster::Bool = false, b::Float64 = 3.0)
 
     ## create combinatorial grid of parameter values
     P_mean_list = collect(range(min_P_mean, stop = max_P_mean, length = length_P_mean));
-    log_P_disp_list = collect(range(log_min_P_disp, stop = log_max_P_disp, length = length_P_disp));
-    P_disp_list = exp.(log_P_disp_list)
-    pars = hcat(repeat(P_mean_list, inner = length(P_disp_list)),
-                repeat(P_disp_list, outer = length(P_mean_list)));
+    log_P_sd_list = collect(range(log_min_P_sd, stop = log_max_P_sd, length = length_P_sd));
+    P_sd_list = exp.(log_P_sd_list)
+    pars = hcat(repeat(P_mean_list, inner = length(P_sd_list)),
+                repeat(P_sd_list, outer = length(P_mean_list)));
 
     ## generate communities for simulations (# communities = Niter)
     sd = []
@@ -1255,9 +1340,13 @@ function multi_eq_variable_P(Nspp::Int64 = 10, Niter::Int64 = 10, Nyr::Int64 = 4
 end
 
 
+"""
+    summarize_multi_eq_variable_map(multi_eq_output::Vector{Any})
 
-
-
+Summarizes the output of `multi_eq_variable_map()`, creating a dataframe of mean equilibrium diversity
+across iterations for each mean MAP x standard deviation MAP combination.
+The standard deviation in biomass is also calculated.
+"""
 function summarize_multi_eq_variable_map(multi_eq_output::Vector{Any})
 
     ## initialize data
@@ -1293,13 +1382,19 @@ function summarize_multi_eq_variable_map(multi_eq_output::Vector{Any})
 end;
 
 
+"""
+    summarize_multi_eq_variable_P(multi_eq_output::Vector{Any})
 
+Summarizes the output of `multi_eq_variable_P()`, creating a dataframe of mean equilibrium diversity
+across iterations for each mean storm frequency x standard deviation storm frequency combination.
+The standard deviation in biomass is also calculated.
+"""
 function summarize_multi_eq_variable_P(multi_eq_output::Vector{Any})
 
     ## initialize data
     Niter = multi_eq_output[2]; Nspp = multi_eq_output[4]; tmp = Vector{Int64}; Npar = size(multi_eq_output[1])[2];
     summary = DataFrame(Pmean = repeat(multi_eq_output[3][:,1], outer = 4),
-                        Pdisp = repeat(multi_eq_output[3][:,2], outer = 4),
+                        Psd = repeat(multi_eq_output[3][:,2], outer = 4),
                         var = repeat(["n", "min", "max", "avg"], inner = Npar),
                         mean = Vector{Float64}(undef, Npar*4),
                         sd = Vector{Float64}(undef, Npar*4))
@@ -1324,10 +1419,6 @@ function summarize_multi_eq_variable_P(multi_eq_output::Vector{Any})
     return summary
 
 end;
-
-
-
-
 
 function plot_multi_eq_variable(data::DataFrame, yvar::String = "n", xvar::Symbol = :W₀,
                                 Nspp::Int = 10, save::Bool = true, filename = "")
